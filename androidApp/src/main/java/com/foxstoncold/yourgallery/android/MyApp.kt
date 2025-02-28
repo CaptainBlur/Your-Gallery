@@ -11,6 +11,9 @@ class MyApp: Application(){
         initLogger(this)
         val dp = DataParser()
 
-        dp.parseData("https://bunkr.cr/a/Zix5amPZ")
+        val album = "https://bunkr.cr/a/Zix5amPZ"
+        val item = "https://bunkr.cr/f/kEzoUKhrjdBqh"
+
+//        dp.parseData(item)
     }
 }
