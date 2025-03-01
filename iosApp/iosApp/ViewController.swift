@@ -16,6 +16,8 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         addSampleText()
+
+        NotificationCenter.default.addObserver(self, selector: #selector(handleSharedURL(_:)), name: .sharedURLReceived, object: nil)
     }
     
     func addSampleText(){
@@ -99,5 +101,13 @@ class ViewController: UIViewController {
 
         return player
     }
+    
+    @objc private func handleSharedURL(_ notification: Notification) {
+        if let url = notification.object as? URL {
+            print("📌 ViewController received shared URL: \(url.absoluteString)")
+            textView.text = "Received URL:\n\(url.absoluteString)"
+        }
+    }
+
 }
 

@@ -6,8 +6,37 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		84EC50A92D726B1000B531B3 /* YourGallery.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 84EC509F2D726B1000B531B3 /* YourGallery.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		84EC50A72D726B1000B531B3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 84E069452D6CC1E900412309 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 84EC509E2D726B1000B531B3;
+			remoteInfo = YourGallery;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		84EC50AA2D726B1000B531B3 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				84EC50A92D726B1000B531B3 /* YourGallery.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		84E0694D2D6CC1E900412309 /* iosApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		84EC509F2D726B1000B531B3 /* YourGallery.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = YourGallery.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -17,6 +46,13 @@
 				Info.plist,
 			);
 			target = 84E0694C2D6CC1E900412309 /* iosApp */;
+		};
+		84EC50AE2D726B1000B531B3 /* Exceptions for "YourGallery" folder in "YourGallery" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 84EC509E2D726B1000B531B3 /* YourGallery */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -29,10 +65,25 @@
 			path = iosApp;
 			sourceTree = "<group>";
 		};
+		84EC50A02D726B1000B531B3 /* YourGallery */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				84EC50AE2D726B1000B531B3 /* Exceptions for "YourGallery" folder in "YourGallery" target */,
+			);
+			path = YourGallery;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		84E0694A2D6CC1E900412309 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		84EC509C2D726B1000B531B3 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -46,6 +97,7 @@
 			isa = PBXGroup;
 			children = (
 				84E0694F2D6CC1E900412309 /* iosApp */,
+				84EC50A02D726B1000B531B3 /* YourGallery */,
 				84E0694E2D6CC1E900412309 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,6 +106,7 @@
 			isa = PBXGroup;
 			children = (
 				84E0694D2D6CC1E900412309 /* iosApp.app */,
+				84EC509F2D726B1000B531B3 /* YourGallery.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -69,10 +122,12 @@
 				84E069492D6CC1E900412309 /* Sources */,
 				84E0694A2D6CC1E900412309 /* Frameworks */,
 				84E0694B2D6CC1E900412309 /* Resources */,
+				84EC50AA2D726B1000B531B3 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				84EC50A82D726B1000B531B3 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				84E0694F2D6CC1E900412309 /* iosApp */,
@@ -83,6 +138,28 @@
 			productName = iosApp;
 			productReference = 84E0694D2D6CC1E900412309 /* iosApp.app */;
 			productType = "com.apple.product-type.application";
+		};
+		84EC509E2D726B1000B531B3 /* YourGallery */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 84EC50AD2D726B1000B531B3 /* Build configuration list for PBXNativeTarget "YourGallery" */;
+			buildPhases = (
+				84EC509B2D726B1000B531B3 /* Sources */,
+				84EC509C2D726B1000B531B3 /* Frameworks */,
+				84EC509D2D726B1000B531B3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				84EC50A02D726B1000B531B3 /* YourGallery */,
+			);
+			name = YourGallery;
+			packageProductDependencies = (
+			);
+			productName = YourGallery;
+			productReference = 84EC509F2D726B1000B531B3 /* YourGallery.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -95,6 +172,9 @@
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
 					84E0694C2D6CC1E900412309 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					84EC509E2D726B1000B531B3 = {
 						CreatedOnToolsVersion = 16.2;
 					};
 				};
@@ -114,12 +194,20 @@
 			projectRoot = "";
 			targets = (
 				84E0694C2D6CC1E900412309 /* iosApp */,
+				84EC509E2D726B1000B531B3 /* YourGallery */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		84E0694B2D6CC1E900412309 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		84EC509D2D726B1000B531B3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -156,7 +244,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		84EC509B2D726B1000B531B3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		84EC50A82D726B1000B531B3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 84EC509E2D726B1000B531B3 /* YourGallery */;
+			targetProxy = 84EC50A72D726B1000B531B3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		84E069612D6CC1EC00412309 /* Debug */ = {
@@ -348,6 +451,58 @@
 			};
 			name = Release;
 		};
+		84EC50AB2D726B1000B531B3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N9MV5LUG2L;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = YourGallery/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = YourGallery;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.foxstoncold.yourgallery.YourGallery;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		84EC50AC2D726B1000B531B3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N9MV5LUG2L;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = YourGallery/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = YourGallery;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.foxstoncold.yourgallery.YourGallery;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -365,6 +520,15 @@
 			buildConfigurations = (
 				84E069612D6CC1EC00412309 /* Debug */,
 				84E069622D6CC1EC00412309 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		84EC50AD2D726B1000B531B3 /* Build configuration list for PBXNativeTarget "YourGallery" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				84EC50AB2D726B1000B531B3 /* Debug */,
+				84EC50AC2D726B1000B531B3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
