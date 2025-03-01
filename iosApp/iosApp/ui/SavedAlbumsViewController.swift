@@ -6,6 +6,8 @@
 //
 
 import UIKit
+import AVKit
+import shared
 
 class SavedAlbumsViewController: UIViewController {
 
@@ -23,10 +25,57 @@ class SavedAlbumsViewController: UIViewController {
     @objc private func handleSharedURL(_ notification: Notification) {
         if let url = notification.object as? String {
             print("📌 ViewController received shared URL: \(url)")
-            label.text = url
+            label.text = String(url.dropFirst(4))
         }
     }
 
+    @IBAction func buttonAction(_ sender: UIButton) {
+        let fieldText = label.text!
+        
+        let dp = DataParser()
+        
+        Task {
+            do {
+                // Call the function and unwrap its result
+                let result = try await dp.parseData(url: fieldText)!
+
+                // Ensure the URL is valid
+                guard let videoUrl = URL(string: result.resolvedContentLink) else {
+                    print("❌ Error: Invalid URL format")
+                    return
+                }
+
+                let avplayer = createAVPlayerWithHeaders(videoUrl: videoUrl.absoluteString, headers: [
+                    "Referer": "https://get.bunkrr.su/"
+                ])
+
+                let avController = AVPlayerViewController()
+                avController.player = avplayer
+                present(avController, animated: true, completion: nil)
+            } catch {
+                print("❌ Error: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func createAVPlayerWithHeaders(videoUrl: String, headers: [String: String]) -> AVPlayer {
+        guard let url = URL(string: videoUrl) else {
+            fatalError("Invalid URL")
+        }
+
+        // Set AVAsset HTTP headers
+        let assetOptions: [String: Any] = [
+            "AVURLAssetHTTPHeaderFieldsKey": headers
+        ]
+
+        // Create an AVURLAsset with custom headers
+        let asset = AVURLAsset(url: url, options: assetOptions)
+        let playerItem = AVPlayerItem(asset: asset)
+        let player = AVPlayer(playerItem: playerItem)
+
+        return player
+    }
+    
 
     /*
     // MARK: - Navigation
