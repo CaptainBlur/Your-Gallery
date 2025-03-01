@@ -13,11 +13,26 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        for context in URLContexts {
-            NSLog("🟢 SceneDelegate received URL: \(context.url.absoluteString)")
-            NotificationCenter.default.post(name: .sharedURLReceived, object: context.url)
+        guard let sharedUrl = URLContexts.first?.url.query() else {
+            NSLog("Failed to extract shared url")
+            return
         }
+        NSLog("SceneDelegate received URL: \(sharedUrl)")
+            
+        NotificationCenter.default.post(name: .sharedURLReceived, object: sharedUrl)
     }
+    
+    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+        print("SceneDelegate is being called!") // Debugging
+        guard let windowScene = (scene as? UIWindowScene) else { return }
+
+        let window = UIWindow(windowScene: windowScene)
+        window.rootViewController = UINavigationController(rootViewController: SavedAlbumsViewController())
+        window.makeKeyAndVisible()
+
+        self.window = window
+    }
+
 
 
     func sceneDidDisconnect(_ scene: UIScene) {
