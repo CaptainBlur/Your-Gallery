@@ -7,7 +7,7 @@ enum class DataSourceType(
 
     private var resolved = false
 
-    var url = String()
+    var url = ""
         private set
         get(){
             if (!resolved)

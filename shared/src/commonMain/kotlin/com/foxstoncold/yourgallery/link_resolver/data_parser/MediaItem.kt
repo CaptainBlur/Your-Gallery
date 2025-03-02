@@ -1,7 +1,7 @@
 package com.foxstoncold.yourgallery.link_resolver.data_parser
 
 import com.fleeksoft.ksoup.Ksoup
-import com.foxstoncold.yourgallery.s
+import com.foxstoncold.yourgallery.link_resolver.sl
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -66,7 +66,7 @@ data class BunkrMediaItem(
             }.body()
             val url = decryptVideoUrl(vc)
             if (url==null){
-                s("failed to decrypt url: ${vc.url}")
+                sl.s("failed to decrypt url: ${vc.url}")
                 return null
             }
 

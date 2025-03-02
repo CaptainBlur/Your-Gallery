@@ -1,12 +1,9 @@
 package com.foxstoncold.yourgallery.link_resolver
 
-import com.foxstoncold.yourgallery.f
-import com.foxstoncold.yourgallery.i
+import com.foxstoncold.splitlogger.SplitLogger
 import com.foxstoncold.yourgallery.link_resolver.data_parser.BunkrMediaItem
 import com.foxstoncold.yourgallery.link_resolver.data_parser.DataSourceType
 import com.foxstoncold.yourgallery.link_resolver.data_parser.MediaContainer
-import com.foxstoncold.yourgallery.link_resolver.data_parser.MediaItem
-import com.foxstoncold.yourgallery.s
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
@@ -16,6 +13,8 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+
+typealias sl = SplitLogger
 
 class DataParser{
 
@@ -53,26 +52,26 @@ class DataParser{
         }
 
         if (sourceType==null){
-            s("unknown source type for: $url")
+            sl.s("unknown source type for: $url")
             return null
         }
         else{
-            f("detected source type for: $url; $sourceType")
+            sl.f("detected source type for: $url; $sourceType")
         }
 
         return if (sourceType.isItem){
-            f("parsing item")
+            sl.f("parsing item")
             when(sourceType.ordinal){
                 0-> BunkrMediaItem.parse(client, sourceType.url)
                 else-> null
             }
         }
         else if (sourceType.isAlbum){
-            f("parsing album")
+            sl.f("parsing album")
             MediaContainer.parse(client, sourceType)
         }
         else{
-            s("Link is neither an item or an album")
+            sl.s("Link is neither an item or an album")
             null
         }
     }

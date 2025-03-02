@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 rootProject.name = "Your_Gallery"
 include(":androidApp")
 include(":shared")
+include(":SplitLogger")

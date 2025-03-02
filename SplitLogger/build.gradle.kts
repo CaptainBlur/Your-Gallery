@@ -16,45 +16,41 @@ kotlin {
             }
         }
     }
-    
+
     listOf(
         iosX64(),
         iosArm64(),
         iosSimulatorArm64()
-    ).forEach {
+    ).forEach{
         it.binaries.framework {
-            baseName = "shared"
+            baseName = "SplitLogger"
             isStatic = true
         }
     }
 
-    sourceSets {
-        commonMain.dependencies {
-            implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kotlinx.serialization.json)
-
-            implementation(libs.ktor.client.core)
-            implementation(libs.ktor.serialization.kotlinx.json)
-            implementation(libs.ktor.client.content.negotiation)
-
-            implementation(libs.ksoup)
-            implementation(project(":SplitLogger"))
-        }
-        androidMain.dependencies {
-            implementation(libs.ktor.client.okhttp)
-        }
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
+    sourceSets{
+        val commonMain by getting {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.core)
+                implementation(libs.kotlinx.serialization.json)
+            }
         }
 
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
+        val androidMain by getting {
+
+        }
+    }
+
+    targets.configureEach {
+        compilations.configureEach {
+            compileTaskProvider.get().compilerOptions {
+                freeCompilerArgs.add("-Xexpect-actual-classes")
+            }
         }
     }
 }
-
 android {
-    namespace = "com.foxstoncold.yourgallery"
+    namespace = "com.foxstoncold.splitlogger"
     compileSdk = 35
     defaultConfig {
         minSdk = 27
@@ -64,6 +60,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
     dependencies {
-        implementation(project(":SplitLogger"))
+//        implementation(files("./libs/SplitLogger-release.aar"))
     }
 }

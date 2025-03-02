@@ -41,6 +41,7 @@ class SavedAlbumsViewController: UIViewController {
             do {
                 // Call the function and unwrap its result
                 let result = try await dp.parseData(url: fieldText) as? MediaItem
+//                Thread.callStackSymbols.forEach{print($0)}
 
                 // Ensure the URL is valid
                 guard
