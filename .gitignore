@@ -101,7 +101,4 @@ fastlane/test_output
 # https://github.com/johnno1962/injectionforxcode
 
 iOSInjectionProject/
-/.kotlin/metadata/kotlinTransformedMetadataLibraries/org.jetbrains.kotlin-kotlin-stdlib-2.1.0-commonMain-ITmP6A.klib
-/.kotlin/metadata/kotlinTransformedMetadataLibraries/org.jetbrains.kotlin-kotlin-test-2.1.0-annotationsCommonMain-D3q3YQ.klib
-/.kotlin/metadata/kotlinTransformedMetadataLibraries/org.jetbrains.kotlin-kotlin-test-2.1.0-assertionsCommonMain-D3q3YQ.klib
-/.kotlin/sessions/kotlin-compiler-2209706564070383727.salive
+/.kotlin/metadata/
