@@ -17,9 +17,11 @@ class SavedAlbumsViewController: UIViewController {
     var startLink: String = String()
     private let dp = DataParser()
     
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         label.text = startLink
+        Native().sl.en()
         
         view.backgroundColor = .white
         NotificationCenter.default.addObserver(self, selector: #selector(handleSharedURL(_:)), name: .sharedURLReceived, object: nil)
@@ -28,7 +30,7 @@ class SavedAlbumsViewController: UIViewController {
     
     @objc private func handleSharedURL(_ notification: Notification) {
         if let url = notification.object as? String {
-            print("📌 ViewController received shared URL: \(url)")
+            Native().sl.f(msg: "ViewController received shared URL: \(url)")
             label.text = String(url.dropFirst(4))
         }
     }
@@ -47,18 +49,19 @@ class SavedAlbumsViewController: UIViewController {
                     let mediaItem = result,
                     let videoUrl = URL(string: mediaItem.resolvedContentLink)
                 else {
-                    print("❌ Error: Invalid URL format")
+                    Native().sl.s(msg: "Error: Invalid URL format")
                     return
                 }
+                Native().sl.i(msg: "launching player")
 
-                let custonUrl = "https://vos207o.cloudatacdn.com/u5kj3fz5vdflsdgge6tf6ocdjtui7uszb4lxl7ovopmraobrmvga77fgsbxq/selhfiukku~PSseVeK1tP?token=clo2i5kofpry3t54w9w0yb1d&expiry=1740960194707"
-                let avplayer = createAVPlayerWithHeaders(videoUrl: custonUrl, headers: mediaItem.headers)
+//                let custonUrl = "https://oo359m.cloudatacdn.com/u5kjzqj2vdflsdgge6tf6oimi4bx2cre4zzgsnr663golfzirzl53zpmfctq/850lr32jvg~m345qtmLYI?token=idy91504aqijguspmn2lbh41&expiry=1740964846475"
+                let avplayer = createAVPlayerWithHeaders(videoUrl: videoUrl.absoluteString, headers: mediaItem.headers)
 
                 let avController = AVPlayerViewController()
                 avController.player = avplayer
                 present(avController, animated: true, completion: nil)
             } catch {
-                print("❌ Error: \(error.localizedDescription)")
+                Native().sl.s(msg: "Error: \(error.localizedDescription)")
             }
         }
     }

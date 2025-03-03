@@ -4,8 +4,6 @@ import com.fleeksoft.ksoup.Ksoup
 import com.fleeksoft.ksoup.nodes.Document
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
-import io.ktor.client.statement.bodyAsText
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
@@ -25,7 +23,9 @@ data class MediaContainer(
     companion object {
         suspend fun parse(client: HttpClient, sourceType: DataSourceType): MediaContainer?{
             val url = sourceType.url
-            val htmlString = handleHttpResponse(client.get(url)) ?: return null
+            val htmlString = handleHttpRequest{
+                client.get(url)
+            } ?: return null
             val document: Document = Ksoup.parse(htmlString)
 
             val albumName = document.select("h1.truncate").text()

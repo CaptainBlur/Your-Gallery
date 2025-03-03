@@ -1,13 +1,25 @@
 package com.foxstoncold.yourgallery.link_resolver.data_parser
 
+import com.foxstoncold.splitlogger.SplitLogger
 import com.foxstoncold.yourgallery.link_resolver.sl
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
 
-suspend fun handleHttpResponse(response: HttpResponse) =
-    if (response.status.isSuccess()) response.bodyAsText()
-    else{
-        sl.s("error making request: ${response.status}; ${response.bodyAsText()}")
-        null
+object Native{
+    val sl = SplitLogger
+}
+
+suspend fun handleHttpRequest(request: suspend () -> HttpResponse): String? {
+    try {
+        val response = request()
+        if (response.status.isSuccess()) return response.bodyAsText()
+        else{
+            sl.s("error making request: ${response.status}; ${response.bodyAsText()}")
+            return null
+        }
+    } catch (e: Exception){
+        sl.s("error making request: ", e)
+        return null
     }
+}

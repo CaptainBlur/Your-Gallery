@@ -1,5 +1,9 @@
 package com.foxstoncold.splitlogger
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+
 object SplitLogger {
 
     //region simple logging methods
@@ -34,8 +38,8 @@ object SplitLogger {
     fun sp(msg: String) = printMsgMethod(msg, Level.SEVERE)
     fun sp(obj: Any?=null) = printMsgMethod(obj?.printObject()?:"", Level.SEVERE)
 
-    fun sp(msg: String, tr: Throwable? = null) = printMsgMethod(msg, Level.SEVERE, tr = tr)
-    fun sp(obj: Any?=null, tr: Throwable? = null) = printMsgMethod(obj?.printObject()?:"", Level.SEVERE, tr = tr)
+//    fun sp(msg: String, tr: Throwable? = null) = printMsgMethod(msg, Level.SEVERE, tr = tr)
+//    fun sp(obj: Any?=null, tr: Throwable? = null) = printMsgMethod(obj?.printObject()?:"", Level.SEVERE, tr = tr)
 
     fun wp(msg: String) = printMsgMethod(msg, Level.WARNING)
     fun wp(obj: Any?=null) = printMsgMethod(obj?.printObject()?:"", Level.WARNING)
@@ -58,6 +62,7 @@ object SplitLogger {
 
     //region private properties
 
+    private val loggerScope = CoroutineScope(Dispatchers.IO)
     private val tags: HashMap<String, String> = HashMap()
 
     //endregion
@@ -67,34 +72,37 @@ object SplitLogger {
     //region private methods
 
     private fun printMsg(msg: String, level: Level, tr: Throwable? = null){
-        Helper.simplePrint("${Helper.getFormattedDate()}${getTag(Helper.extractFromStacktrace(6)[0])}${level.marker} ${level.tabulation}$msg")
+        val fromStacktrace = Helper.extractFromStacktrace(6)
+        Helper.simplePrint("${Helper.getFormattedDate()}${getTag(fromStacktrace.first, fromStacktrace.third)}${level.marker} ${level.tabulation}$msg${tr?.stackTraceToString()?:""}")
     }
 
     private fun printMsgMethod(msg: String, level: Level, tr: Throwable? = null){
         val fromStacktrace = Helper.extractFromStacktrace(6, true)
-        Helper.simplePrint("${Helper.getFormattedDate()}${getTag(fromStacktrace[0])}${level.marker}${level.tabulation}(${fromStacktrace[1]})﹏$msg")
+        Helper.simplePrint("${Helper.getFormattedDate()}${getTag(fromStacktrace.first, fromStacktrace.third)}${level.marker}${level.tabulation}(${fromStacktrace.second})﹏$msg")
     }
 
     private fun printPass(msg: String){
-        val className = Helper.extractFromStacktrace(5)[0]
-        Helper.simplePrint("${Helper.getFormattedDate()}${getTag(className)}\uD83D\uDFE3⌇$className⌇$msg")
+        val fromStacktrace = Helper.extractFromStacktrace(5)
+        Helper.simplePrint("${Helper.getFormattedDate()}${getTag(fromStacktrace.first, fromStacktrace.third)}\uD83D\uDFE3⌇${fromStacktrace.first}⌇$msg")
+//        Helper.simplePrint("TAG___${className}")
     }
 
-    private fun getTag(className: String): String{
+    private fun getTag(className: String, nativeCaller: Boolean): String{
         //Trying to find a match in the storage
         if (tags.containsKey(className)) return tags[className]?:""
 
         val capitalLetterWords = Regex("[A-Z][a-z]*").findAll(className)
         val condensedWords = Regex("[A-Z][a-z]{0,3}[^A-Z^equoaijy]?")
 
-        val condensedTag = capitalLetterWords.joinToString(prefix = "TAG_", separator = ""){
+        val condensedTag = capitalLetterWords.joinToString(prefix = "TAG${if(nativeCaller)"_N" else ""}_", separator = ""){
             val value = it.value
             val condensed = condensedWords.find(value)
             condensed?.value?:""
         }
+        val maxTagLength = if (!nativeCaller) 23 else 25
         val leveledTag =
-            if (condensedTag.length < 23) condensedTag + CharArray(23 - condensedTag.length).apply { fill(' ') }.concatToString()
-            else if (condensedTag.length > 23) condensedTag.substring(0 .. 23)
+            if (condensedTag.length < maxTagLength) condensedTag + CharArray(maxTagLength - condensedTag.length).apply { fill(' ') }.concatToString()
+            else if (condensedTag.length > maxTagLength-1) condensedTag.substring(0..<maxTagLength-1) + ' '
             else condensedTag
 
         tags[className] = leveledTag

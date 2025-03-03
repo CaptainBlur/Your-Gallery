@@ -5,7 +5,7 @@ internal actual object Helper {
         TODO("Not yet implemented")
     }
 
-    actual fun extractFromStacktrace(stackTraceElement: Int, extractFunctionName: Boolean): Array<String> {
+    actual fun extractFromStacktrace(stackTraceElement: Int, extractFunctionName: Boolean): Triple<String, String, Boolean> {
         TODO("Not yet implemented")
     }
 

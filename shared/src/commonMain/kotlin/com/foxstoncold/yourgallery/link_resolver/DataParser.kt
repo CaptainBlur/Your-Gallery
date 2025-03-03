@@ -4,6 +4,7 @@ import com.foxstoncold.splitlogger.SplitLogger
 import com.foxstoncold.yourgallery.link_resolver.data_parser.BunkrMediaItem
 import com.foxstoncold.yourgallery.link_resolver.data_parser.DataSourceType
 import com.foxstoncold.yourgallery.link_resolver.data_parser.MediaContainer
+import com.foxstoncold.yourgallery.link_resolver.data_parser.MediaItem
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
@@ -17,7 +18,6 @@ import kotlinx.serialization.json.Json
 typealias sl = SplitLogger
 
 class DataParser{
-    val SL = SplitLogger
 
     private val dpScope = CoroutineScope(Dispatchers.IO)
     private val client = HttpClient{
