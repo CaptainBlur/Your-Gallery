@@ -1,10 +1,10 @@
 package com.foxstoncold.splitlogger
 
-internal enum class Level(tabulation: String, marker: String)  {
+internal enum class Level(val tabulation: String, val marker: String)  {
     SEVERE("", "🔴"),
     WARNING("", "🟡"),
     FINEST("", "🔵"),
-    FINER("\t", "🔵"),
-    FINE("\t\t", "🔵"),
+    FINER("    ", "🔵"),
+    FINE("        ", "🔵"),
     INFO("", "🟢")
 }

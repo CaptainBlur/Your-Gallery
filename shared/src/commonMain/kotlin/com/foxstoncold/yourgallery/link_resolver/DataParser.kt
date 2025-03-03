@@ -17,6 +17,7 @@ import kotlinx.serialization.json.Json
 typealias sl = SplitLogger
 
 class DataParser{
+    val SL = SplitLogger
 
     private val dpScope = CoroutineScope(Dispatchers.IO)
     private val client = HttpClient{
@@ -29,6 +30,8 @@ class DataParser{
 
     init {
         dpScope.launch {
+            sl.en()
+
             val album = "https://bunkr.cr/a/DoznjiN9"
             val item = "https://bunkr.cr/f/7710667-o6og5XNI.mp4"
             delay (5000L)

@@ -24,7 +24,6 @@ class SavedAlbumsViewController: UIViewController {
         view.backgroundColor = .white
         NotificationCenter.default.addObserver(self, selector: #selector(handleSharedURL(_:)), name: .sharedURLReceived, object: nil)
 
-        // Do any additional setup after loading the view.
     }
     
     @objc private func handleSharedURL(_ notification: Notification) {
@@ -52,7 +51,8 @@ class SavedAlbumsViewController: UIViewController {
                     return
                 }
 
-                let avplayer = createAVPlayerWithHeaders(videoUrl: videoUrl.absoluteString, headers: mediaItem.headers)
+                let custonUrl = "https://vos207o.cloudatacdn.com/u5kj3fz5vdflsdgge6tf6ocdjtui7uszb4lxl7ovopmraobrmvga77fgsbxq/selhfiukku~PSseVeK1tP?token=clo2i5kofpry3t54w9w0yb1d&expiry=1740960194707"
+                let avplayer = createAVPlayerWithHeaders(videoUrl: custonUrl, headers: mediaItem.headers)
 
                 let avController = AVPlayerViewController()
                 avController.player = avplayer

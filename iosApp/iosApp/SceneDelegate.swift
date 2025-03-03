@@ -31,7 +31,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         if let backupedLink = extractBackupedShareUrl() {
             backupedLink
         } else {
-            "[default_launch]"
+            "https://bunkr.si/f/WanpgCl4bG8V7"
+//            "[default_launch]"
         }
         let window = UIWindow(windowScene: windowScene)
         window.rootViewController = UINavigationController(rootViewController: controller)
