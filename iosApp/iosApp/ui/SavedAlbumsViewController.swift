@@ -25,6 +25,8 @@ class SavedAlbumsViewController: UIViewController {
         
         view.backgroundColor = .white
         NotificationCenter.default.addObserver(self, selector: #selector(handleSharedURL(_:)), name: .sharedURLReceived, object: nil)
+        
+        present(MediaContainerViewController(), animated: true)
 
     }
     
@@ -36,6 +38,34 @@ class SavedAlbumsViewController: UIViewController {
     }
 
     @IBAction func buttonAction(_ sender: UIButton) {
+        present(MediaContainerViewController(), animated: true)
+    }
+    
+
+}
+
+
+extension SavedAlbumsViewController{
+    
+    private func createAVPlayerWithHeaders(videoUrl: String, headers: [String: String]) -> AVPlayer {
+        guard let url = URL(string: videoUrl) else {
+            fatalError("Invalid URL")
+        }
+
+        // Set AVAsset HTTP headers
+        let assetOptions: [String: Any] = [
+            "AVURLAssetHTTPHeaderFieldsKey": headers
+        ]
+
+        // Create an AVURLAsset with custom headers
+        let asset = AVURLAsset(url: url, options: assetOptions)
+        let playerItem = AVPlayerItem(asset: asset)
+        let player = AVPlayer(playerItem: playerItem)
+
+        return player
+    }
+    
+    private func testPresentVideoPlayer(){
         let fieldText = label.text!
         
         Task {
@@ -65,34 +95,4 @@ class SavedAlbumsViewController: UIViewController {
             }
         }
     }
-    
-    private func createAVPlayerWithHeaders(videoUrl: String, headers: [String: String]) -> AVPlayer {
-        guard let url = URL(string: videoUrl) else {
-            fatalError("Invalid URL")
-        }
-
-        // Set AVAsset HTTP headers
-        let assetOptions: [String: Any] = [
-            "AVURLAssetHTTPHeaderFieldsKey": headers
-        ]
-
-        // Create an AVURLAsset with custom headers
-        let asset = AVURLAsset(url: url, options: assetOptions)
-        let playerItem = AVPlayerItem(asset: asset)
-        let player = AVPlayer(playerItem: playerItem)
-
-        return player
-    }
-    
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
-    }
-    */
-
 }

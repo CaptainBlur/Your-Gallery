@@ -6,6 +6,14 @@ import kotlinx.coroutines.IO
 
 object SplitLogger {
 
+    //region public properties
+
+    var enabled: Boolean = true
+
+    //endregion
+
+
+
     //region simple logging methods
 
     fun s(msg: String) = printMsg(msg, Level.SEVERE)
@@ -72,16 +80,19 @@ object SplitLogger {
     //region private methods
 
     private fun printMsg(msg: String, level: Level, tr: Throwable? = null){
+        if (!enabled) return
         val fromStacktrace = Helper.extractFromStacktrace(6)
         Helper.simplePrint("${Helper.getFormattedDate()}${getTag(fromStacktrace.first, fromStacktrace.third)}${level.marker} ${level.tabulation}$msg${tr?.stackTraceToString()?:""}")
     }
 
     private fun printMsgMethod(msg: String, level: Level, tr: Throwable? = null){
+        if (!enabled) return
         val fromStacktrace = Helper.extractFromStacktrace(6, true)
         Helper.simplePrint("${Helper.getFormattedDate()}${getTag(fromStacktrace.first, fromStacktrace.third)}${level.marker}${level.tabulation}(${fromStacktrace.second})﹏$msg")
     }
 
     private fun printPass(msg: String){
+        if (!enabled) return
         val fromStacktrace = Helper.extractFromStacktrace(5)
         Helper.simplePrint("${Helper.getFormattedDate()}${getTag(fromStacktrace.first, fromStacktrace.third)}\uD83D\uDFE3⌇${fromStacktrace.first}⌇$msg")
 //        Helper.simplePrint("TAG___${className}")
