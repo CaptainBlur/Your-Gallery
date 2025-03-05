@@ -13,6 +13,7 @@ object Native{
             SplitLogger.enabled = value
         }
         get() = SplitLogger.enabled
+    var themeMode: Boolean = false
 }
 
 suspend fun handleHttpRequest(request: suspend () -> HttpResponse): String? {

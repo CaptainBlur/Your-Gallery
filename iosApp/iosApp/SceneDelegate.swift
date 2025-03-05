@@ -32,7 +32,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         if let backupedLink = extractBackupedShareUrl() {
             backupedLink
         } else {
-            "https://bunkr.si/f/WanpgCl4bG8V7"
+            "https://bunkr.cr/a/Zix5amPZ"
+//            "https://bunkr.si/f/WanpgCl4bG8V7"
 //            "[default_launch]"
         }
         let window = UIWindow(windowScene: windowScene)

@@ -17,7 +17,7 @@ data class MediaContainer(
     val name: String = "N/A",
     val size: String = "N/A",
     val remoteContainerLink: String = "N/A",
-    val containerType: MediaContainerType = MediaContainerType.UNDEFINED,
+    val containerType: MediaContainerType,
     val mediaItems: List<MediaItem?> = emptyList(),
 ){
     companion object {
@@ -47,8 +47,4 @@ data class MediaContainer(
         }
 
     }
-}
-
-enum class MediaContainerType{
-    UNDEFINED, BUNKR
 }

@@ -16,6 +16,7 @@ class SavedAlbumsViewController: UIViewController {
     
     var startLink: String = String()
     private let dp = DataParser()
+    private let colorScheme = MediaContainerType.bunkr.colorScheme
     
     
     override func viewDidLoad() {
@@ -23,11 +24,10 @@ class SavedAlbumsViewController: UIViewController {
         label.text = startLink
         Native().sl.en()
         
-        view.backgroundColor = .white
+        view.backgroundColor = colorScheme.surfaceContainerLowest.uiColor()
         NotificationCenter.default.addObserver(self, selector: #selector(handleSharedURL(_:)), name: .sharedURLReceived, object: nil)
-        
-        present(MediaContainerViewController(), animated: true)
-
+         
+//        present(MediaContainerViewController(dp.testMediaContainer), animated: true)
     }
     
     @objc private func handleSharedURL(_ notification: Notification) {
@@ -38,16 +38,43 @@ class SavedAlbumsViewController: UIViewController {
     }
 
     @IBAction func buttonAction(_ sender: UIButton) {
-        present(MediaContainerViewController(), animated: true)
+        let fieldText = label.text!
+        
+        Task {
+            do {
+                // Call the function and unwrap its result
+                guard let result = try await dp.parseData(url: fieldText) else {
+                    Native().sl.w(msg: "Error: getting parsed data")
+                    return
+                }
+                
+                if let item = result as? MediaItem{
+                    guard
+                        let videoUrl = URL(string: item.resolvedContentLink)
+                    else {
+                        Native().sl.s(msg: "Error: Invalid URL format")
+                        return
+                    }
+                    Native().sl.i(msg: "launching player")
+                    launchPlayer(videoUrl: videoUrl.absoluteString, headers: item.headers)
+                    
+                } else if let container = result as? MediaContainer{
+                    Native().sl.i(msg: "entering media container")
+                    present(MediaContainerViewController(container), animated: true)
+                }
+            } catch {
+                Native().sl.s(msg: "Error: \(error.localizedDescription)")
+            }
+        }
     }
     
 
 }
 
 
-extension SavedAlbumsViewController{
+extension UIViewController{
     
-    private func createAVPlayerWithHeaders(videoUrl: String, headers: [String: String]) -> AVPlayer {
+    func launchPlayer(videoUrl: String, headers: [String: String]){
         guard let url = URL(string: videoUrl) else {
             fatalError("Invalid URL")
         }
@@ -61,38 +88,9 @@ extension SavedAlbumsViewController{
         let asset = AVURLAsset(url: url, options: assetOptions)
         let playerItem = AVPlayerItem(asset: asset)
         let player = AVPlayer(playerItem: playerItem)
-
-        return player
-    }
-    
-    private func testPresentVideoPlayer(){
-        let fieldText = label.text!
         
-        Task {
-            do {
-                // Call the function and unwrap its result
-                let result = try await dp.parseData(url: fieldText) as? MediaItem
-//                Thread.callStackSymbols.forEach{print($0)}
-
-                // Ensure the URL is valid
-                guard
-                    let mediaItem = result,
-                    let videoUrl = URL(string: mediaItem.resolvedContentLink)
-                else {
-                    Native().sl.s(msg: "Error: Invalid URL format")
-                    return
-                }
-                Native().sl.i(msg: "launching player")
-
-//                let custonUrl = "https://oo359m.cloudatacdn.com/u5kjzqj2vdflsdgge6tf6oimi4bx2cre4zzgsnr663golfzirzl53zpmfctq/850lr32jvg~m345qtmLYI?token=idy91504aqijguspmn2lbh41&expiry=1740964846475"
-                let avplayer = createAVPlayerWithHeaders(videoUrl: videoUrl.absoluteString, headers: mediaItem.headers)
-
-                let avController = AVPlayerViewController()
-                avController.player = avplayer
-                present(avController, animated: true, completion: nil)
-            } catch {
-                Native().sl.s(msg: "Error: \(error.localizedDescription)")
-            }
-        }
+        let avController = AVPlayerViewController()
+        avController.player = player
+        present(avController, animated: true, completion: nil)
     }
 }
