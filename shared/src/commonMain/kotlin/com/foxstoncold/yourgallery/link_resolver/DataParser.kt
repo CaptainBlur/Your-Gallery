@@ -29,6 +29,7 @@ class DataParser{
             })
         }
     }
+    private val parsedDataCache: HashMap<String, Any?> = hashMapOf()
 
     init {
         dpScope.launch {
@@ -64,16 +65,24 @@ class DataParser{
             sl.f("detected source type for: $url; $sourceType")
         }
 
-        return if (sourceType.isItem){
+        return if (parsedDataCache.containsKey(sourceType.url)){
+            sl.f("getting cached data")
+            parsedDataCache[sourceType.url]
+        }
+        else if (sourceType.isItem){
             sl.f("parsing item")
-            when(sourceType.ordinal){
+            val parsed = when(sourceType.ordinal){
                 0-> BunkrMediaItem.parse(client, sourceType.url)
                 else-> null
             }
+            parsedDataCache[sourceType.url] = parsed
+            return parsed
         }
         else if (sourceType.isAlbum){
             sl.f("parsing album")
-            MediaContainer.parse(client, sourceType)
+            val parsed = MediaContainer.parse(client, sourceType)
+            parsedDataCache[sourceType.url] = parsed
+            return parsed
         }
         else{
             sl.s("Link is neither an item or an album")
@@ -86,6 +95,8 @@ class DataParser{
 
     //region private functions
 
-    }
+
 
     //endregion
+
+    }

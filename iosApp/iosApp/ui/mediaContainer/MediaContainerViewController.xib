@@ -11,33 +11,14 @@
     <objects>
         <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="MediaContainerViewController" customModule="iosApp" customModuleProvider="target">
             <connections>
-                <outlet property="collectionView" destination="lt7-y4-VsU" id="ErV-9F-5gt"/>
                 <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
             </connections>
         </placeholder>
         <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
         <view autoresizesSubviews="NO" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="i5M-Pr-FkT">
             <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
-            <subviews>
-                <collectionView autoresizesSubviews="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" dataMode="none" translatesAutoresizingMaskIntoConstraints="NO" id="lt7-y4-VsU">
-                    <rect key="frame" x="0.0" y="59" width="393" height="759"/>
-                    <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                    <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="10" minimumInteritemSpacing="10" id="rP2-fl-QMW">
-                        <size key="itemSize" width="128" height="128"/>
-                        <size key="headerReferenceSize" width="0.0" height="0.0"/>
-                        <size key="footerReferenceSize" width="0.0" height="0.0"/>
-                        <inset key="sectionInset" minX="0.0" minY="0.0" maxX="0.0" maxY="0.0"/>
-                    </collectionViewFlowLayout>
-                </collectionView>
-            </subviews>
             <viewLayoutGuide key="safeArea" id="fnl-2z-Ty3"/>
             <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-            <constraints>
-                <constraint firstItem="fnl-2z-Ty3" firstAttribute="trailing" secondItem="lt7-y4-VsU" secondAttribute="trailing" id="By1-mo-nph"/>
-                <constraint firstItem="lt7-y4-VsU" firstAttribute="top" secondItem="fnl-2z-Ty3" secondAttribute="top" id="QxB-tL-F9H"/>
-                <constraint firstItem="lt7-y4-VsU" firstAttribute="leading" secondItem="fnl-2z-Ty3" secondAttribute="leading" id="RIZ-pC-eEk"/>
-                <constraint firstItem="fnl-2z-Ty3" firstAttribute="bottom" secondItem="lt7-y4-VsU" secondAttribute="bottom" id="pIm-wn-VgP"/>
-            </constraints>
             <point key="canvasLocation" x="132" y="-11"/>
         </view>
     </objects>

@@ -32,7 +32,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         if let backupedLink = extractBackupedShareUrl() {
             backupedLink
         } else {
-            "https://bunkr.cr/a/Zix5amPZ"
+//            "https://bunkr.cr/a/Zix5amPZ" //ortega
+//            "https://bunkr.si/a/J0wRO0lB" //mirari
+            "https://bunkr.cr/a/bAJi6vwd" //kim
 //            "https://bunkr.si/f/WanpgCl4bG8V7"
 //            "[default_launch]"
         }

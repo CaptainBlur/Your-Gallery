@@ -39,6 +39,7 @@ class SavedAlbumsViewController: UIViewController {
 
     @IBAction func buttonAction(_ sender: UIButton) {
         let fieldText = label.text!
+//        navigationController?.pushViewController(MediaContainerViewController(dp.testMediaContainer), animated: true)
         
         Task {
             do {
@@ -56,41 +57,30 @@ class SavedAlbumsViewController: UIViewController {
                         return
                     }
                     Native().sl.i(msg: "launching player")
-                    launchPlayer(videoUrl: videoUrl.absoluteString, headers: item.headers)
+                    launchPlayer(item: item)
                     
                 } else if let container = result as? MediaContainer{
                     Native().sl.i(msg: "entering media container")
                     present(MediaContainerViewController(container), animated: true)
+//                    navigationController?.pushViewController(MediaContainerViewController(container), animated: true)
                 }
             } catch {
                 Native().sl.s(msg: "Error: \(error.localizedDescription)")
             }
         }
     }
-    
-
 }
 
 
 extension UIViewController{
     
-    func launchPlayer(videoUrl: String, headers: [String: String]){
-        guard let url = URL(string: videoUrl) else {
-            fatalError("Invalid URL")
-        }
+    func launchPlayer(item: MediaItem){
 
-        // Set AVAsset HTTP headers
-        let assetOptions: [String: Any] = [
-            "AVURLAssetHTTPHeaderFieldsKey": headers
-        ]
-
-        // Create an AVURLAsset with custom headers
-        let asset = AVURLAsset(url: url, options: assetOptions)
-        let playerItem = AVPlayerItem(asset: asset)
-        let player = AVPlayer(playerItem: playerItem)
         
-        let avController = AVPlayerViewController()
-        avController.player = player
-        present(avController, animated: true, completion: nil)
+//        let avController = AVPlayerViewController()
+//        avController.player = player
+//        present(avController, animated: true, completion: nil)
+        
+        present(PlayerViewController(item), animated: true, completion: nil)
     }
 }

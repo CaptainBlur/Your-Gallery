@@ -13,38 +13,32 @@ class MediaContainerViewController: UIViewController, UICollectionViewDelegate, 
     private let mediaContainer: MediaContainer
     private let colorScheme: MediaTypeColorScheme
     
+    private var collectionView: UICollectionView!
+    private var isCollectionViewSetup = false
+    
     init(_ mc: MediaContainer){
         mediaContainer = mc
         colorScheme = mc.containerType.colorScheme
-        super.init(nibName: nil, bundle: nil)
+        super.init(nibName: "MediaContainerViewController", bundle: nil)
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    @IBOutlet weak var collectionView: UICollectionView!
     
     override func viewWillAppear(_ animated: Bool){
         super.viewWillAppear(animated)
         view.backgroundColor = colorScheme.surface.uiColor()
         setupCollectionView()
-
-        
-        self.modalPresentationStyle = UIModalPresentationStyle.automatic
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
-        view.setNeedsDisplay()
-        view.setNeedsLayout()
-        view.layoutIfNeeded()
     }
 
 }
@@ -93,7 +87,6 @@ extension MediaContainerViewController {
     override func viewDidLayoutSubviews(){
         super.viewDidLayoutSubviews()
         collectionView?.collectionViewLayout.invalidateLayout()
-
     }
 
 }
@@ -122,30 +115,19 @@ extension MediaContainerViewController {
             ]
         )
         cell.tapAction = {
-//            self.present(ViewController(), animated: true, completion: nil)
-//            self.launchPlayer(videoUrl: item.resolvedContentLink, headers: item.headers)
-            
-            guard let url = URL(string: item.resolvedContentLink) else {
-                fatalError("Invalid URL")
-            }
-
-            // Set AVAsset HTTP headers
-            let assetOptions: [String: Any] = [
-                "AVURLAssetHTTPHeaderFieldsKey": item.headers
-            ]
-
-            // Create an AVURLAsset with custom headers
-            let asset = AVURLAsset(url: url, options: assetOptions)
-            let playerItem = AVPlayerItem(asset: asset)
-            let player = AVPlayer(playerItem: playerItem)
-            
-            let avController = AVPlayerViewController()
-            avController.player = player
-            self.present(avController, animated: true, completion: nil)
+            self.launchPlayer(item: item)
         }
     }
     
     private func setupCollectionView(){
+        
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .vertical
+        collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
+        
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(collectionView)
+        
         collectionView.backgroundColor = mediaContainer.containerType.colorScheme.surface.uiColor()
         collectionView.delegate = self
         collectionView.dataSource = self
