@@ -39,6 +39,8 @@ enum class MediaContainerType(
             surfaceBright = Color("#FDF7FF", "#3A3842"),
             onSurface = Color("#1C1A24", "#E6E0EE"),
             onSurfaceVariant = Color("#484455", "#CAC3D8"),
+            outline = Color("#797486", "#938EA1"),
+            outlineVariant = Color("#CAC3D8", "#484455"),
 
             surfaceContainerLowest = Color("#FFFFFF", "#0F0D16"),
             surfaceContainerLow = Color("#F7F1FF", "#1C1A24"),
@@ -46,47 +48,51 @@ enum class MediaContainerType(
             surfaceContainerHigh = Color("#ECE6F3", "#2B2932"),
             surfaceContainerHighest = Color("#E6E0EE", "#36333E")
         )
-    );
+    ),
+    UNDEFINED(MediaTypeColorScheme())
+    ;
 }
 
 
 data class MediaTypeColorScheme(
-    val primary: Color,
-    val secondary: Color,
-    val tertiary: Color,
-    val error: Color,
+    val primary: Color = Color("", ""),
+    val secondary: Color = Color("", ""),
+    val tertiary: Color = Color("", ""),
+    val error: Color = Color("", ""),
 
-    val primary_medium: Color,
-    val secondary_medium: Color,
-    val tertiary_medium: Color,
-    val error_medium: Color,
+    val primary_medium: Color = Color("", ""),
+    val secondary_medium: Color = Color("", ""),
+    val tertiary_medium: Color = Color("", ""),
+    val error_medium: Color = Color("", ""),
 
-    val onPrimary: Color,
-    val onSecondary: Color,
-    val onTertiary: Color,
-    val onError: Color,
+    val onPrimary: Color = Color("", ""),
+    val onSecondary: Color = Color("", ""),
+    val onTertiary: Color = Color("", ""),
+    val onError: Color = Color("", ""),
 
-    val primaryContainer: Color,
-    val secondaryContainer: Color,
-    val tertiaryContainer: Color,
-    val errorContainer: Color,
+    val primaryContainer: Color = Color("", ""),
+    val secondaryContainer: Color = Color("", ""),
+    val tertiaryContainer: Color = Color("", ""),
+    val errorContainer: Color = Color("", ""),
 
-    val primaryContainer_medium: Color,
-    val secondaryContainer_medium: Color,
-    val tertiaryContainer_medium: Color,
-    val errorContainer_medium: Color,
+    val primaryContainer_medium: Color = Color("", ""),
+    val secondaryContainer_medium: Color = Color("", ""),
+    val tertiaryContainer_medium: Color = Color("", ""),
+    val errorContainer_medium: Color = Color("", ""),
 
-    val onContainer: Color,
+    val onContainer: Color = Color("", ""),
 
-    val surfaceDim: Color,
-    val surface: Color,
-    val surfaceBright: Color,
-    val onSurface: Color,
-    val onSurfaceVariant: Color,
+    val surfaceDim: Color = Color("",""),
+    val surface: Color = Color("", ""),
+    val surfaceBright: Color = Color("", ""),
+    val onSurface: Color = Color("", ""),
+    val onSurfaceVariant: Color = Color("", ""),
+    val outline: Color = Color("", ""),
+    val outlineVariant: Color = Color("", ""),
 
-    val surfaceContainerLowest: Color,
-    val surfaceContainerLow: Color,
-    val surfaceContainer: Color,
-    val surfaceContainerHigh: Color,
-    val surfaceContainerHighest: Color
+    val surfaceContainerLowest: Color = Color("", ""),
+    val surfaceContainerLow: Color = Color("", ""),
+    val surfaceContainer: Color = Color("", ""),
+    val surfaceContainerHigh: Color = Color("", ""),
+    val surfaceContainerHighest: Color = Color("", "")
 )

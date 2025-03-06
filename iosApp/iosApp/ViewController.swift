@@ -49,41 +49,6 @@ class ViewController: UIViewController {
     }
     
     
-    @IBAction func PlayAction(_ sender: Any) {
-        let bunkrString = "https://c.bunkr-cache.se/Zpd1TcX70MiMS8zp/0h1ctt9b5cf3sz6sad9ce_source-R8qCdEAs.mp4"
-        let pixeldrainString = "https://pixeldrain.com/api/file/mwfg67nR?download"
-        let pd2 = "https://pixeldrain.com/api/file/jDBNzpVq?download"
-        let bunkrPage = "https://bunkr.ws/f/hTeImbIO2RklW"
-        
-        let fieldText = textView.text
-        
-        let dp = DataParser()
-        
-//        Task {
-//            do {
-//                // Call the function and unwrap its result
-//                let result = try await dp.parseData(url: fieldText!)!
-//
-//                // Ensure the URL is valid
-//                guard let videoUrl = URL(string: result.resolvedContentLink) else {
-//                    print("❌ Error: Invalid URL format")
-//                    return
-//                }
-//
-//                let avplayer = createAVPlayerWithHeaders(videoUrl: videoUrl.absoluteString, headers: [
-//                    "Referer": "https://get.bunkrr.su/"
-//                ])
-//
-//                let avController = AVPlayerViewController()
-//                avController.player = avplayer
-//                present(avController, animated: true, completion: nil)
-//            } catch {
-//                print("❌ Error: \(error.localizedDescription)")
-//            }
-//        }
-
-    }
-    
     func createAVPlayerWithHeaders(videoUrl: String, headers: [String: String]) -> AVPlayer {
         guard let url = URL(string: videoUrl) else {
             fatalError("Invalid URL")

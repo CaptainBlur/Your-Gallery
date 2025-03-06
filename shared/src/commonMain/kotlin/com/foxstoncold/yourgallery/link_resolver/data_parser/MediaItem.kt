@@ -23,6 +23,7 @@ abstract class MediaItem {
     open val resolvedContentLink: String = "N/A"
     open val resolvedThumbnailLink: String = "N/A"
     open val headers: Map<String, String> = emptyMap()
+    open val containerType: MediaContainerType = MediaContainerType.UNDEFINED
 }
 
 data class BunkrMediaItem(
@@ -40,6 +41,8 @@ data class BunkrMediaItem(
         get() = srcLink
     override val resolvedThumbnailLink: String
         get() = if (passPreviewForThumbnail) contentPreviewLink else thumbnailLink
+    override val containerType: MediaContainerType
+        get() = MediaContainerType.BUNKR
 
 
     companion object{
