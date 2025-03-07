@@ -19,12 +19,11 @@
                     <stackView autoresizesSubviews="NO" opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="evf-Q7-5Xr">
                         <rect key="frame" x="8" y="10" width="171" height="223.33333333333334"/>
                         <subviews>
-                            <imageView autoresizesSubviews="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalCompressionResistancePriority="753" verticalCompressionResistancePriority="753" image="sampleImage2" translatesAutoresizingMaskIntoConstraints="NO" id="HOT-uo-vrV">
+                            <imageView autoresizesSubviews="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalCompressionResistancePriority="753" verticalCompressionResistancePriority="753" translatesAutoresizingMaskIntoConstraints="NO" id="HOT-uo-vrV">
                                 <rect key="frame" x="0.0" y="0.0" width="171" height="171"/>
                                 <constraints>
                                     <constraint firstAttribute="width" secondItem="HOT-uo-vrV" secondAttribute="height" multiplier="1:1" id="aqU-Do-jar"/>
                                 </constraints>
-                                <preferredSymbolConfiguration key="preferredSymbolConfiguration" scale="default"/>
                             </imageView>
                             <label autoresizesSubviews="NO" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="nameLabel" textAlignment="center" lineBreakMode="characterWrap" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="UOE-2Z-mpV">
                                 <rect key="frame" x="0.0" y="179" width="171" height="19.333333333333343"/>
@@ -64,7 +63,4 @@
             <point key="canvasLocation" x="78.625954198473281" y="63.732394366197184"/>
         </collectionViewCell>
     </objects>
-    <resources>
-        <image name="sampleImage2" width="1280" height="960"/>
-    </resources>
 </document>

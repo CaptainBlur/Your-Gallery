@@ -16,6 +16,8 @@ class MediaContainerViewController: UIViewController, UICollectionViewDelegate, 
     private var collectionView: UICollectionView!
     private var isCollectionViewSetup = false
     
+    private let playerController: PlayerViewController = PlayerViewController()
+    
     init(_ mc: MediaContainer){
         mediaContainer = mc
         colorScheme = mc.containerType.colorScheme
@@ -102,7 +104,10 @@ extension MediaContainerViewController {
         cell.nameLabel.textColor = colorScheme.onSurface.uiColor()
         cell.sizeLabel.textColor = colorScheme.onSurfaceVariant.uiColor()
         
-        
+        guard !mediaContainer.mediaItems.isEmpty else {
+            Native().sl.w(msg: "media items list is empty")
+            return
+        }
         let item: MediaItem = mediaContainer.mediaItems[index] as! MediaItem
         cell.nameLabel.text = item.name
         cell.sizeLabel.text = item.size
@@ -115,7 +120,9 @@ extension MediaContainerViewController {
             ]
         )
         cell.tapAction = {
-            self.launchPlayer(item: item)
+            self.mediaContainer.itemPointer = Int32(index)
+            self.playerController.loadContainer(self.mediaContainer)
+            self.present(self.playerController, animated: true)
         }
     }
     

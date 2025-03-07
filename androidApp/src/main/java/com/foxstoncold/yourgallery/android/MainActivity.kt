@@ -8,8 +8,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.foxstoncold.yourgallery.Greeting
-import com.foxstoncold.yourgallery.initLogger
 import com.foxstoncold.yourgallery.link_resolver.DataParser
 
 class MainActivity : ComponentActivity() {
@@ -21,7 +19,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    GreetingView(Greeting().greet())
+//                    GreetingView(Greeting().greet())
                 }
             }
         }

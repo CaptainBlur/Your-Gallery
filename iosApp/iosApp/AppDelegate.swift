@@ -17,7 +17,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Override point for customization after application launch.
         Native().logging = true
         Native().sl.en()
-        Native().themeMode = true
+        Native().themeMode = false
         return true
     }
 

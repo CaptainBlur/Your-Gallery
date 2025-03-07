@@ -14,7 +14,10 @@ class PlayerViewController: UIViewController {
     private var player: AVPlayer?
     private var playerLayer: AVPlayerLayer?
     private var timeObserverToken: Any?
-
+    private var currentItem: AVPlayerItem?
+    
+    private let controlsContainerView: UIView = UIView()
+    private let gradientView: UIView = UIView()
     private let progressBar: UIProgressView = UIProgressView(progressViewStyle: .default)
     private let seekAreaView: UIView = UIView()
     private let timeCounterLabel = UILabel()
@@ -26,15 +29,18 @@ class PlayerViewController: UIViewController {
     private let playButton = UIButton()
     private let previousButton = UIButton()
     private let nextButton = UIButton()
+    private let closeButton = UIButton()
     
-
-
-    private let item: MediaItem
-    private let colorScheme: MediaTypeColorScheme
-
-    init(_ item: MediaItem) {
-        self.item = item
-        self.colorScheme = item.containerType.colorScheme
+    private var playerProgressSetTask: Task<Void, Error> = Task(){}
+    private var playerControlsHideTask: Task<Void, Error> = Task(){}
+    private var playerLoadingIndicationTask: Task<Void, Error> = Task(){}
+    
+    private var playbackType: Int8 = -1
+    private var item: MediaItem?
+    private var container: MediaContainer?
+    private var colorScheme: MediaTypeColorScheme!
+    
+    init(){
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -48,13 +54,13 @@ class PlayerViewController: UIViewController {
 
         view.backgroundColor = .black
 
-        setupPlayer()
-        setupControlViews()
+        setupPlayback()
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         playerLayer?.frame = view.bounds
+        gradientView.layer.sublayers?.first?.frame = gradientView.bounds
     }
 
 
@@ -69,26 +75,81 @@ class PlayerViewController: UIViewController {
 }
 
 extension PlayerViewController{
+    func loadItem(_ item: MediaItem){
+        playbackType = 0
+        self.item = item
+        self.container = nil
+        self.colorScheme = item.containerType.colorScheme
+    }
+    func loadContainer(_ container: MediaContainer){
+        playbackType = 1
+        self.container = container
+        self.item = nil
+        self.colorScheme = container.containerType.colorScheme
+    }
+}
+
+
+extension PlayerViewController {
+    
     private func setupControlViews(){
+        //Controls container
+        controlsContainerView.alpha = 1
+        controlsContainerView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(controlsContainerView)
+        
+        NSLayoutConstraint.activate([
+            controlsContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            controlsContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            controlsContainerView.topAnchor.constraint(equalTo: view.topAnchor),
+            controlsContainerView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTapGesture))
+        view.addGestureRecognizer(tapGesture)
+        
+        //Gradient view
+        gradientView.translatesAutoresizingMaskIntoConstraints = false
+        gradientView.isUserInteractionEnabled = false
+        view.addSubview(gradientView)
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.colors = [
+            UIColor.black.withAlphaComponent(0.45).cgColor, // Dark at the bottom
+            UIColor.clear.cgColor // Transparent at the top
+        ]
+        gradientLayer.locations = [0.0, 1.0]
+        gradientLayer.startPoint = CGPoint(x: 0.5, y: 1)
+        gradientLayer.endPoint = CGPoint(x: 0.5, y: 0)
+        gradientLayer.frame = gradientView.bounds
+
+        gradientView.layer.insertSublayer(gradientLayer, at: 0)
+        
+        NSLayoutConstraint.activate([
+            gradientView.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor),
+            gradientView.trailingAnchor.constraint(equalTo: controlsContainerView.trailingAnchor),
+            gradientView.bottomAnchor.constraint(equalTo: controlsContainerView.bottomAnchor),
+            gradientView.heightAnchor.constraint(equalToConstant: 135)
+        ])
+        
         //Time counter
         timeCounterLabel.text = "--:--"
         timeCounterLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
         timeCounterLabel.textColor = colorScheme.surfaceContainerLowest.uiColorLight()
         timeCounterLabel.alpha = 0
         timeCounterLabel.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(timeCounterLabel)
+        controlsContainerView.addSubview(timeCounterLabel)
         
         //Progress bar
         progressBar.translatesAutoresizingMaskIntoConstraints = false
         progressBar.setProgress(0.0, animated: false)
-        progressBar.trackTintColor = colorScheme.outlineVariant.uiColor().withAlphaComponent(0.85)
-        progressBar.progressTintColor = colorScheme.tertiaryContainer.uiColor().withAlphaComponent(0.95)
-        view.addSubview(progressBar)
+        progressBar.trackTintColor = colorScheme.surfaceContainerHigh.uiColor().withAlphaComponent(0.85)
+        progressBar.progressTintColor = colorScheme.tertiaryContainer_medium.uiColor().withAlphaComponent(0.95)
+        controlsContainerView.addSubview(progressBar)
         
         NSLayoutConstraint.activate([
-            progressBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            progressBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            progressBar.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -72),
+            progressBar.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor, constant: 20),
+            progressBar.trailingAnchor.constraint(equalTo: controlsContainerView.trailingAnchor, constant: -20),
+            progressBar.bottomAnchor.constraint(equalTo: controlsContainerView.bottomAnchor, constant: -65),
             progressBar.heightAnchor.constraint(equalToConstant: 6),
             
             timeCounterLabel.centerYAnchor.constraint(equalTo: progressBar.centerYAnchor),
@@ -99,7 +160,7 @@ extension PlayerViewController{
         seekAreaView.translatesAutoresizingMaskIntoConstraints = false
         seekAreaView.backgroundColor = UIColor.clear
         seekAreaView.isUserInteractionEnabled = true
-        view.addSubview(seekAreaView)
+        controlsContainerView.addSubview(seekAreaView)
 
         NSLayoutConstraint.activate([
             seekAreaView.leadingAnchor.constraint(equalTo: progressBar.leadingAnchor),
@@ -108,20 +169,21 @@ extension PlayerViewController{
             seekAreaView.heightAnchor.constraint(equalToConstant: 52)
         ])
 
-        let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handleSeekGesture(_:)))
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleProgressTap(_:)))
+        let progressPanGesture = UIPanGestureRecognizer(target: self, action: #selector(handleSeekGesture(_:)))
+        let progressTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleProgressTap(_:)))
 
-        seekAreaView.addGestureRecognizer(panGesture)
-        seekAreaView.addGestureRecognizer(tapGesture)
-        tapGesture.require(toFail: panGesture)
+        seekAreaView.addGestureRecognizer(progressPanGesture)
+        seekAreaView.addGestureRecognizer(progressTapGesture)
+        progressTapGesture.require(toFail: progressPanGesture)
         
         //Buttons
         let playbackButtonsColor = colorScheme.surfaceContainerHigh.uiColorLight().withAlphaComponent(0.88)
-        let playConfig = UIImage.SymbolConfiguration(pointSize: 45, weight: .bold)
-        let config = UIImage.SymbolConfiguration(pointSize: 35, weight: .bold)
+        let playConfig = UIImage.SymbolConfiguration(pointSize: 45, weight: .semibold)
+        let config = UIImage.SymbolConfiguration(pointSize: 35, weight: .semibold)
         playButton.setImage(UIImage(systemName: "pause.fill", withConfiguration: playConfig), for: .normal)
         previousButton.setImage(UIImage(systemName: "backward.fill", withConfiguration: config), for: .normal)
         nextButton.setImage(UIImage(systemName: "forward.fill", withConfiguration: config), for: .normal)
+        closeButton.setImage(UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 26, weight: .medium)), for: .normal)
         
         playButton.tintColor = playbackButtonsColor
         playButton.addTarget(self, action: #selector(togglePlayPause), for: .touchUpInside)
@@ -131,119 +193,61 @@ extension PlayerViewController{
         
         nextButton.tintColor = playbackButtonsColor
         nextButton.addTarget(self, action: #selector(skipForward), for: .touchUpInside)
+        
+        closeButton.tintColor = colorScheme.surface.uiColorLight()
+        closeButton.addTarget(self, action: #selector(dismissView), for: .touchUpInside)
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        controlsContainerView.addSubview(closeButton)
+        
+        NSLayoutConstraint.activate([
+            closeButton.topAnchor.constraint(equalTo: controlsContainerView.topAnchor, constant: 20),
+            closeButton.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor, constant: 20)
+        ])
 
-        let buttonStack = UIStackView(arrangedSubviews: [previousButton, playButton, nextButton])
+        let buttonStack = UIStackView(arrangedSubviews: [previousButton, playButton])
+        if playbackType==1{
+            buttonStack.addArrangedSubview(nextButton)
+        }
         buttonStack.axis = .horizontal
         buttonStack.distribution = .equalSpacing
         buttonStack.spacing = 55
         buttonStack.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(buttonStack)
+        controlsContainerView.addSubview(buttonStack)
 
         NSLayoutConstraint.activate([
-            buttonStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            buttonStack.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+            buttonStack.centerXAnchor.constraint(equalTo: controlsContainerView.centerXAnchor),
+            buttonStack.centerYAnchor.constraint(equalTo: controlsContainerView.centerYAnchor),
+            
+            closeButton.topAnchor.constraint(equalTo: controlsContainerView.topAnchor, constant: 20),
+            closeButton.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor, constant: 20)
         ])
 
     }
     
-    @objc private func handleSeekGesture(_ gesture: UIPanGestureRecognizer) {
-        guard let player = player, let duration = player.currentItem?.duration else { return }
-        let durationSeconds = CMTimeGetSeconds(duration)
-        let location = gesture.translation(in: seekAreaView)
-        let progressWidth = seekAreaView.bounds.width
-        
-        let positionDelta = location.x - startSeekPosition
-        let secondsDelta = durationSeconds / progressWidth * positionDelta * 0.35
-        let newSeconds = startSeekSeconds + secondsDelta
-        let newTime = CMTime(seconds: newSeconds, preferredTimescale: 600)
-        let tolerance: CMTime = CMTime(seconds: 0.5, preferredTimescale: 600)
-
-        switch gesture.state {
-        case .began:
-            startSeekPosition = location.x
-            startSeekSeconds = CMTimeGetSeconds(player.currentTime())
-            startSeeking = true
-//            Native().sl.i(msg: "⏩ Seeking started")
-        case .changed:
-//            Native().sl.i(msg: "progress \(positionDelta): \(secondsDelta) seconds")
-            player.seek(to: newTime, toleranceBefore: tolerance, toleranceAfter: tolerance)
-            progressBar.progress = Float(newSeconds / durationSeconds)
-//            Native().sl.i(msg: "⏩ Seeking to \(CMTimeGetSeconds(newTime)) seconds")
-        case .ended:
-//            player.pause()
-//            player.play()
-            Task{
-                try await Task.sleep(for:.seconds(2))
-                startSeeking = false
+    private func setupPlayback(){
+        switch playbackType{
+        case 0:
+            setupPlayer()
+            setupControlViews()
+            setupControlsHide()
+        case 1:
+            setupQueuePlayer{
+                self.setupControlViews()
+                self.setupControlsHide()
             }
-//            Native().sl.i(msg: "⏩ Seeking finished at \(CMTimeGetSeconds(newTime)) seconds")
         default:
-            break
+            return
         }
     }
     
-    @objc private func handleProgressTap(_ gesture: UITapGestureRecognizer) {
-        guard let player = player, let duration = player.currentItem?.duration else { return }
-        let durationSeconds = CMTimeGetSeconds(duration)
-        let location = gesture.location(in: seekAreaView)
-        let progressWidth = seekAreaView.bounds.width
-        let percentage = max(0, min(1, location.x / progressWidth))
-        let newTime = CMTime(seconds: Double(percentage) * durationSeconds, preferredTimescale: 600)
-
-        startSeeking = true
-        player.seek(to: newTime, toleranceBefore: .zero, toleranceAfter: .zero)
-        progressBar.setProgress(Float(percentage), animated: false)
-//        player.pause()
-//        player.play()
-        //MARK: use task group for handling active 'unlocking' tasks
-        Task{
-            try await Task.sleep(for:.seconds(2))
-            startSeeking = false
-        }
-//        Native().sl.i(msg: "⏩ Jumped to \(CMTimeGetSeconds(newTime)) seconds")
-    }
-    
-    @objc private func togglePlayPause() {
-        guard let player = player else { return }
-        let config = UIImage.SymbolConfiguration(pointSize: 48, weight: .bold)
-        let playIcon = UIImage(systemName: "play.fill", withConfiguration: config)
-        let pauseIcon = UIImage(systemName: "pause.fill", withConfiguration: config)
-
-        if player.timeControlStatus == .playing {
-            player.pause()
-            playButton.setImage(playIcon, for: .normal)
-        } else {
-            player.play()
-            playButton.setImage(pauseIcon, for: .normal)
-        }
-    }
-
-
-    @objc private func skipBackward() {
-//        guard let player = player else { return }
-//        let currentTime = CMTimeGetSeconds(player.currentTime())
-//        let newTime = max(0, currentTime - 10)
-//        player.seek(to: CMTime(seconds: newTime, preferredTimescale: 600))
-    }
-
-    @objc private func skipForward() {
-//        guard let player = player, let duration = player.currentItem?.duration else { return }
-//        let currentTime = CMTimeGetSeconds(player.currentTime())
-//        let durationSeconds = CMTimeGetSeconds(duration)
-//        let newTime = min(durationSeconds, currentTime + 10)
-//        player.seek(to: CMTime(seconds: newTime, preferredTimescale: 600))
-    }
-}
-
-extension PlayerViewController {
     private func setupPlayer() {
-        guard let url = URL(string: item.resolvedContentLink) else {
+        guard let url = URL(string: item!.resolvedContentLink), (item != nil) else {
             fatalError("Invalid URL")
         }
 
         // Set AVAsset HTTP headers
         let assetOptions: [String: Any] = [
-            "AVURLAssetHTTPHeaderFieldsKey": item.headers
+            "AVURLAssetHTTPHeaderFieldsKey": item!.headers
         ]
 
         // Create an AVURLAsset with custom headers
@@ -252,25 +256,105 @@ extension PlayerViewController {
         player = AVPlayer(playerItem: playerItem)
         
         playerLayer = AVPlayerLayer(player: player)
-        playerLayer?.videoGravity = .resizeAspect // ✅ Maintain aspect ratio
+        playerLayer?.videoGravity = .resizeAspect
 
         if let playerLayer = playerLayer {
-            view.layer.addSublayer(playerLayer) // ✅ Add video to view
+            view.layer.addSublayer(playerLayer)
         }
 
         addObservers()
         playerItem.addObserver(self, forKeyPath: "status", options: [.new, .initial], context: nil)
         
-        player?.play() // ✅ Start playback
-//        player?.obser
+        player?.play()
     }
     
+    private func setupQueuePlayer(onComplete: @escaping ()->Void){
+        guard container != nil else { return }
+        Task{
+            var mediaQueue = container!.mediaItems
+                if container!.itemPointer>0{
+                    mediaQueue.removeSubrange(0..<Int(container!.itemPointer))
+                }
+
+            let playerItems: [AVPlayerItem] = mediaQueue.map {
+                let item = $0 as! MediaItem
+                
+                guard let url = URL(string: item.resolvedContentLink) else {
+                    fatalError("Invalid URL")
+                }
+                
+                let assetOptions: [String: Any] = [
+                    "AVURLAssetHTTPHeaderFieldsKey": item.headers
+                ]
+
+                // Create an AVURLAsset with custom headers
+                let asset = AVURLAsset(url: url, options: assetOptions)
+                return AVPlayerItem(asset: asset)
+            }
+                        
+            player = AVQueuePlayer(items: playerItems)
+            
+            playerLayer = AVPlayerLayer(player: player)
+            playerLayer?.videoGravity = .resizeAspect
+
+            if let playerLayer = playerLayer {
+                view.layer.addSublayer(playerLayer)
+            }
+            
+            onComplete()
+
+            addObservers()
+            observeNewItem(player?.currentItem)
+            
+            player?.play()
+        }
+    }
+    
+    private func observeNewItem(_ item: AVPlayerItem?) {
+        // ✅ Remove observer from the old item
+        if let currentItem = currentItem {
+            currentItem.removeObserver(self, forKeyPath: "status")
+        }
+        
+        // ✅ Set and observe the new item
+        currentItem = item
+        currentItem?.addObserver(self, forKeyPath: "status", options: [.new, .initial], context: nil)
+    }
+
+    
+    private func removeObservers() {
+        if playbackType==0{
+            player?.currentItem?.removeObserver(self, forKeyPath: "status")
+        }
+        player?.removeObserver(self, forKeyPath: "timeControlStatus")
+        NotificationCenter.default.removeObserver(self)
+        
+        if let timeObserverToken = timeObserverToken {
+            player?.removeTimeObserver(timeObserverToken)
+        }
+        
+        if let currentItem = currentItem {
+            currentItem.removeObserver(self, forKeyPath: "status")
+        }
+        NotificationCenter.default.removeObserver(self)
+    }
+}
+
+extension PlayerViewController{
     private func addObservers() {
         // 🔹 Observe playback state
         player?.addObserver(self, forKeyPath: "timeControlStatus", options: [.new, .initial], context: nil)
 
         // 🔹 Track video completion
         NotificationCenter.default.addObserver(self, selector: #selector(playerDidFinishPlaying), name: .AVPlayerItemDidPlayToEndTime, object: player?.currentItem)
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(playerDidAdvanceToNextItem),
+            name: .AVPlayerItemDidPlayToEndTime,
+            object: nil
+        )
+
 
         // 🔹 Track playback progress
         timeObserverToken = player?.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.01, preferredTimescale: CMTimeScale(NSEC_PER_SEC)), queue: DispatchQueue.main) { time in
@@ -294,20 +378,23 @@ extension PlayerViewController {
     }
     
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
-//        if keyPath == "timeControlStatus" {
-//            if let player = object as? AVPlayer {
-//                switch player.timeControlStatus {
-//                case .playing:
-//                    Native().sl.fr(msg: "▶️ Player")
-//                case .paused:
-//                    Native().sl.fr(msg: "⏸️ Player")
-//                case .waitingToPlayAtSpecifiedRate:
-//                    Native().sl.fr(msg: "⏳ Player")
-//                @unknown default:
-//                    Native().sl.fr(msg: "❓ Player")
-//                }
-//            }
-//        } else
+        if keyPath == "timeControlStatus" {
+            if let player = object as? AVPlayer {
+                switch player.timeControlStatus {
+                case .playing:
+                    removePulsatingAnimation()
+                    Native().sl.fr(msg: "▶️ Player")
+                case .paused:
+                    removePulsatingAnimation()
+                    Native().sl.fr(msg: "⏸️ Player")
+                case .waitingToPlayAtSpecifiedRate:
+                    setupPlayerLoadingIndication()
+                    Native().sl.fr(msg: "⏳ Player")
+                @unknown default:
+                    Native().sl.fr(msg: "❓ Player")
+                }
+            }
+        } else
         if keyPath == "status", let playerItem = object as? AVPlayerItem {
             switch playerItem.status {
             case .readyToPlay:
@@ -322,6 +409,103 @@ extension PlayerViewController {
                 Native().sl.w(msg: "Unhandled AVPlayerItem status")
             }
         }
+    }
+    
+    @objc private func handleSeekGesture(_ gesture: UIPanGestureRecognizer) {
+        guard let player = player, let duration = player.currentItem?.duration else { return }
+        let durationSeconds = CMTimeGetSeconds(duration)
+        let location = gesture.translation(in: seekAreaView)
+        let progressWidth = seekAreaView.bounds.width
+        
+        let positionDelta = location.x - startSeekPosition
+        let secondsDelta = durationSeconds / progressWidth * positionDelta * 0.35
+        let newSeconds = startSeekSeconds + secondsDelta
+        let newTime = CMTime(seconds: newSeconds, preferredTimescale: 600)
+        let tolerance: CMTime = CMTime(seconds: 0.5, preferredTimescale: 600)
+
+        switch gesture.state {
+        case .began:
+            startSeekPosition = location.x
+            startSeekSeconds = CMTimeGetSeconds(player.currentTime())
+            startSeeking = true
+            playerControlsHideTask.cancel()
+        case .changed:
+            player.seek(to: newTime, toleranceBefore: tolerance, toleranceAfter: tolerance)
+            progressBar.progress = Float(newSeconds / durationSeconds)
+        case .ended:
+            setupProgressSetRelease()
+            setupControlsHide()
+        default:
+            break
+        }
+    }
+    
+    @objc private func handleProgressTap(_ gesture: UITapGestureRecognizer) {
+        guard let player = player, let duration = player.currentItem?.duration else { return }
+        let durationSeconds = CMTimeGetSeconds(duration)
+        let location = gesture.location(in: seekAreaView)
+        let progressWidth = seekAreaView.bounds.width
+        let percentage = max(0, min(1, location.x / progressWidth))
+        let newTime = CMTime(seconds: Double(percentage) * durationSeconds, preferredTimescale: 600)
+
+        startSeeking = true
+        player.seek(to: newTime, toleranceBefore: .zero, toleranceAfter: .zero)
+        progressBar.setProgress(Float(percentage), animated: false)
+        setupProgressSetRelease()
+        setupControlsHide()
+    }
+    
+    @objc private func togglePlayPause() {
+        guard let player = player else { return }
+        let playConfig = UIImage.SymbolConfiguration(pointSize: 45, weight: .semibold)
+        let playIcon = UIImage(systemName: "play.fill", withConfiguration: playConfig)
+        let pauseIcon = UIImage(systemName: "pause.fill", withConfiguration: playConfig)
+
+        if player.timeControlStatus == .playing {
+            player.pause()
+            playButton.setImage(playIcon, for: .normal)
+        } else {
+            player.play()
+            playButton.setImage(pauseIcon, for: .normal)
+        }
+        setupControlsHide()
+    }
+
+    @objc private func playerDidAdvanceToNextItem() {
+        guard let queuePlayer = player as? AVQueuePlayer else { return }
+        observeNewItem(queuePlayer.currentItem)
+    }
+
+
+    @objc private func skipBackward() {
+        setupControlsHide()
+        
+        player?.seek(to: CMTime(seconds: 0, preferredTimescale: 600))
+        progressBar.setProgress(0.0, animated: false)
+//        guard let player = player else { return }
+//        let currentTime = CMTimeGetSeconds(player.currentTime())
+//        let newTime = max(0, currentTime - 10)
+//        player.seek(to: CMTime(seconds: newTime, preferredTimescale: 600))
+    }
+
+    @objc private func skipForward() {
+        setupControlsHide()
+        guard let queuePlayer = player as? AVQueuePlayer else { return }
+        
+        queuePlayer.advanceToNextItem()
+//        guard let player = player, let duration = player.currentItem?.duration else { return }
+//        let currentTime = CMTimeGetSeconds(player.currentTime())
+//        let durationSeconds = CMTimeGetSeconds(duration)
+//        let newTime = min(durationSeconds, currentTime + 10)
+//        player.seek(to: CMTime(seconds: newTime, preferredTimescale: 600))
+    }
+    
+    @objc private func dismissView() {
+        self.dismiss(animated: true)
+//        guard let player = player else { return }
+//        let currentTime = CMTimeGetSeconds(player.currentTime())
+//        let newTime = max(0, currentTime - 10)
+//        player.seek(to: CMTime(seconds: newTime, preferredTimescale: 600))
     }
     
     private func animateTimeCounter() {
@@ -343,14 +527,60 @@ extension PlayerViewController {
         dismiss(animated: true)
     }
 
-    // ✅ Cleanup observers
-    private func removeObservers() {
-        player?.currentItem?.removeObserver(self, forKeyPath: "status")
-        player?.removeObserver(self, forKeyPath: "timeControlStatus")
-        NotificationCenter.default.removeObserver(self)
-
-        if let timeObserverToken = timeObserverToken {
-            player?.removeTimeObserver(timeObserverToken)
+    private func setupProgressSetRelease(){
+        playerProgressSetTask.cancel()
+        playerProgressSetTask = Task{
+            try await Task.sleep(for:.seconds(2))
+            startSeeking = false
         }
+    }
+    
+    @objc private func handleTapGesture() {
+        let isHidden = controlsContainerView.alpha == 0
+
+        UIView.animate(withDuration: 0.25, animations: {
+            self.controlsContainerView.alpha = isHidden ? 1 : 0
+            self.gradientView.alpha = isHidden ? 1 : 0
+        })
+
+        if isHidden {
+            setupControlsHide()
+        }
+    }
+
+    private func setupControlsHide(){
+        playerControlsHideTask.cancel()
+        playerControlsHideTask = Task{
+            try await Task.sleep(for:.seconds(5))
+            UIView.animate(withDuration: 0.25, animations: {
+                self.controlsContainerView.alpha = 0
+                self.gradientView.alpha = 0
+            })
+        }
+    }
+    
+    private func setupPlayerLoadingIndication(){
+        playerLoadingIndicationTask.cancel()
+        playerLoadingIndicationTask = Task{
+            try await Task.sleep(for:.seconds(3))
+            addPulsatingAnimation()
+        }
+    }
+    
+    private func addPulsatingAnimation() {
+        let pulseAnimation = CABasicAnimation(keyPath: "opacity")
+        pulseAnimation.fromValue = 1.0
+        pulseAnimation.toValue = 0.75
+        pulseAnimation.duration = 0.8
+        pulseAnimation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        pulseAnimation.autoreverses = true
+        pulseAnimation.repeatCount = .infinity
+
+        progressBar.layer.add(pulseAnimation, forKey: "pulsing")
+    }
+
+    private func removePulsatingAnimation() {
+        playerLoadingIndicationTask.cancel()
+        progressBar.layer.removeAnimation(forKey: "pulsing")
     }
 }

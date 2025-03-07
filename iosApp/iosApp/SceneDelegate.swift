@@ -33,11 +33,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             backupedLink
         } else {
 //            "https://bunkr.cr/a/Zix5amPZ" //ortega
-//            "https://bunkr.si/a/J0wRO0lB" //mirari
+            "https://bunkr.si/a/J0wRO0lB" //mirari
 //            "https://bunkr.cr/a/bAJi6vwd" //kim
 //            "https://bunkr.si/f/WanpgCl4bG8V7"
 //            "https://bunkr.cr/v/xbsUbrPczwB09" //longer vid
-            "https://bunkr.pk/f/VDFUE3kAMayGo" //selti
+//            "https://bunkr.pk/f/VDFUE3kAMayGo" //selti
+//            "https://bunkr.site/f/bsXOm7h9zGvSC" //diana
 //            "[default_launch]"
         }
         let window = UIWindow(windowScene: windowScene)

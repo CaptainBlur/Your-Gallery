@@ -18,6 +18,7 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 Universal Media Item model for UI
  */
 abstract class MediaItem {
+    open val index: Int = -1
     open val name: String = "N/A"
     open val size: String = "N/A"
     open val resolvedContentLink: String = "N/A"
@@ -27,6 +28,7 @@ abstract class MediaItem {
 }
 
 data class BunkrMediaItem(
+    override val index: Int,
     override val name: String,
     override val size: String,
 
@@ -53,7 +55,9 @@ data class BunkrMediaItem(
             val url: String
         )
 
-        suspend fun parse(client: HttpClient, pageLink: String): BunkrMediaItem?{
+        suspend fun parse(client: HttpClient, pageLink: String): BunkrMediaItem? = parse(-1, client, pageLink)
+
+        suspend fun parse(index: Int, client: HttpClient, pageLink: String): BunkrMediaItem?{
             val htmlString = handleHttpRequest{
                 client.get(pageLink)
             } ?: return null
@@ -78,7 +82,7 @@ data class BunkrMediaItem(
 //            i(fileName + fileSize + thumbnailUrl)
 //            i(url)
             return BunkrMediaItem(
-                itemName, itemSize?:"N/A", pageLink, url, thumbnailUrl, "", false
+                index, itemName, itemSize?:"N/A", pageLink, url, thumbnailUrl, "", false
             )
         }
 

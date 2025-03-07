@@ -18,6 +18,7 @@ class SavedAlbumsViewController: UIViewController {
     private let dp = DataParser()
     private let colorScheme = MediaContainerType.bunkr.colorScheme
     
+    private var performingParsing: Bool = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -27,38 +28,32 @@ class SavedAlbumsViewController: UIViewController {
         view.backgroundColor = colorScheme.surfaceContainerLowest.uiColor()
         NotificationCenter.default.addObserver(self, selector: #selector(handleSharedURL(_:)), name: .sharedURLReceived, object: nil)
          
+        checkAvailableLink()
 //        present(MediaContainerViewController(dp.testMediaContainer), animated: true)
     }
-    
-    @objc private func handleSharedURL(_ notification: Notification) {
-        if let url = notification.object as? String {
-            Native().sl.f(msg: "ViewController received shared URL: \(url)")
-            label.text = String(url.dropFirst(4))
-        }
-    }
+
 
     @IBAction func buttonAction(_ sender: UIButton) {
-        let fieldText = label.text!
 //        navigationController?.pushViewController(MediaContainerViewController(dp.testMediaContainer), animated: true)
+        checkAvailableLink()
+    }
+}
+
+extension SavedAlbumsViewController{
+    private func checkAvailableLink(){
+        guard !startLink.isEmpty, !performingParsing else { return }
         
         Task {
+            performingParsing = true
             do {
                 // Call the function and unwrap its result
-                guard let result = try await dp.parseData(url: fieldText) else {
+                guard let result = try await dp.parseData(url: startLink) else {
                     Native().sl.w(msg: "Error: getting parsed data")
                     return
                 }
                 
                 if let item = result as? MediaItem{
-                    guard
-                        let videoUrl = URL(string: item.resolvedContentLink)
-                    else {
-                        Native().sl.s(msg: "Error: Invalid URL format")
-                        return
-                    }
-                    Native().sl.i(msg: "launching player")
-                    launchPlayer(item: item)
-                    
+//                    launchPlayer(item: item)
                 } else if let container = result as? MediaContainer{
                     Native().sl.i(msg: "entering media container")
                     present(MediaContainerViewController(container), animated: true)
@@ -67,20 +62,27 @@ class SavedAlbumsViewController: UIViewController {
             } catch {
                 Native().sl.s(msg: "Error: \(error.localizedDescription)")
             }
+            performingParsing = false
+        }
+    }
+    
+    @objc private func handleSharedURL(_ notification: Notification) {
+        if let url = notification.object as? String {
+            Native().sl.f(msg: "ViewController received shared URL: \(url)")
+            startLink = String(url.dropFirst(4))
+            label.text = startLink
         }
     }
 }
 
 
 extension UIViewController{
-    
-    func launchPlayer(item: MediaItem){
-
-        
-//        let avController = AVPlayerViewController()
-//        avController.player = player
-//        present(avController, animated: true, completion: nil)
-        
-        present(PlayerViewController(item), animated: true, completion: nil)
-    }
+//    func launchPlayer(item: MediaItem){
+//        Native().sl.i(msg: "launching player for link: \(item.resolvedContentLink)")
+//        present(PlayerViewController(), animated: true, completion: nil)
+//    }
+//    func launchPlayer(container: MediaContainer){
+//        Native().sl.i(msg: "launching player for container: \(container.remoteContainerLink)")
+//        present(PlayerViewController(), animated: true, completion: nil)
+//    }
 }
