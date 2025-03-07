@@ -16,11 +16,10 @@ class MediaContainerViewController: UIViewController, UICollectionViewDelegate, 
     private var collectionView: UICollectionView!
     private var isCollectionViewSetup = false
     
-    private let playerController: PlayerViewController = PlayerViewController()
-    
     init(_ mc: MediaContainer){
         mediaContainer = mc
         colorScheme = mc.containerType.colorScheme
+        
         super.init(nibName: "MediaContainerViewController", bundle: nil)
     }
     
@@ -119,10 +118,11 @@ extension MediaContainerViewController {
                 .cacheOriginalImage
             ]
         )
-        cell.tapAction = {
-            self.mediaContainer.itemPointer = Int32(index)
-            self.playerController.loadContainer(self.mediaContainer)
-            self.present(self.playerController, animated: true)
+        cell.tapAction = { [weak self] in
+            guard self != nil else { return }
+            self!.mediaContainer.itemPointer = Int32(index)
+            let playerController = PlayerViewController(self!.mediaContainer)
+            self!.present(playerController, animated: true)
         }
     }
     

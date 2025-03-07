@@ -29,12 +29,12 @@ class MediaContainerCollectionViewCell: UICollectionViewCell {
         tapAction()
     }
     private func animateTap() {
-        UIView.animate(withDuration: 0.1, animations: {
-           self.contentView.transform = CGAffineTransform(scaleX: 0.98, y: 0.98) // Shrink effect
+        UIView.animate(withDuration: 0.1, animations: { [weak self] in
+           self?.contentView.transform = CGAffineTransform(scaleX: 0.98, y: 0.98) // Shrink effect
         },
-        completion: { _ in
+        completion: {[weak self] _ in
            UIView.animate(withDuration: 0.1) {
-               self.contentView.transform = CGAffineTransform.identity // Restore size
+               self?.contentView.transform = CGAffineTransform.identity // Restore size
            }
         })
         

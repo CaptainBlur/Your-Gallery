@@ -32,9 +32,21 @@ class SavedAlbumsViewController: UIViewController {
 //        present(MediaContainerViewController(dp.testMediaContainer), animated: true)
     }
 
-
-    @IBAction func buttonAction(_ sender: UIButton) {
-//        navigationController?.pushViewController(MediaContainerViewController(dp.testMediaContainer), animated: true)
+    
+    @IBAction func itemButtonAction() {
+        startLink =
+//            "https://bunkr.si/f/WanpgCl4bG8V7" //cristyren short
+//            "https://bunkr.cr/v/xbsUbrPczwB09" //longer vid
+//            "https://bunkr.pk/f/VDFUE3kAMayGo" //selti
+            "https://bunkr.site/f/bsXOm7h9zGvSC" //diana
+        checkAvailableLink()
+    }
+    
+    @IBAction func albumButtonAction(_ sender: UIButton) {
+        startLink =
+//            "https://bunkr.cr/a/Zix5amPZ" //ortega
+            "https://bunkr.si/a/J0wRO0lB" //mirari
+//            "https://bunkr.cr/a/bAJi6vwd" //kim
         checkAvailableLink()
     }
 }
@@ -49,11 +61,12 @@ extension SavedAlbumsViewController{
                 // Call the function and unwrap its result
                 guard let result = try await dp.parseData(url: startLink) else {
                     Native().sl.w(msg: "Error: getting parsed data")
+                    performingParsing = false
                     return
                 }
                 
                 if let item = result as? MediaItem{
-//                    launchPlayer(item: item)
+                    present(PlayerViewController(item), animated: true)
                 } else if let container = result as? MediaContainer{
                     Native().sl.i(msg: "entering media container")
                     present(MediaContainerViewController(container), animated: true)
@@ -75,14 +88,3 @@ extension SavedAlbumsViewController{
     }
 }
 
-
-extension UIViewController{
-//    func launchPlayer(item: MediaItem){
-//        Native().sl.i(msg: "launching player for link: \(item.resolvedContentLink)")
-//        present(PlayerViewController(), animated: true, completion: nil)
-//    }
-//    func launchPlayer(container: MediaContainer){
-//        Native().sl.i(msg: "launching player for container: \(container.remoteContainerLink)")
-//        present(PlayerViewController(), animated: true, completion: nil)
-//    }
-}

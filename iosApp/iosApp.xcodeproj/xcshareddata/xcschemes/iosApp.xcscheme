@@ -54,21 +54,6 @@
       </BuildableProductRunnable>
       <AdditionalOptions>
          <AdditionalOption
-            key = "MallocStackLogging"
-            value = ""
-            isEnabled = "YES">
-         </AdditionalOption>
-         <AdditionalOption
-            key = "PrefersMallocStackLoggingLite"
-            value = ""
-            isEnabled = "YES">
-         </AdditionalOption>
-         <AdditionalOption
-            key = "MallocScribble"
-            value = ""
-            isEnabled = "YES">
-         </AdditionalOption>
-         <AdditionalOption
             key = "APP_DISTRIBUTOR_ID_OVERRIDE"
             value = "com.apple.AppStore"
             isEnabled = "YES">

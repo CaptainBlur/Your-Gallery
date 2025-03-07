@@ -22,7 +22,7 @@ class PlayerViewController: UIViewController {
     private let seekAreaView: UIView = UIView()
     private let timeCounterLabel = UILabel()
     
-    private var startSeeking = false
+    private var blockPlayerProgressSet = false
     private var startSeekPosition: CGFloat = 0.0
     private var startSeekSeconds: Float64 = 0.0
     
@@ -35,17 +35,33 @@ class PlayerViewController: UIViewController {
     private var playerControlsHideTask: Task<Void, Error> = Task(){}
     private var playerLoadingIndicationTask: Task<Void, Error> = Task(){}
     
-    private var playbackType: Int8 = -1
-    private var item: MediaItem?
-    private var container: MediaContainer?
-    private var colorScheme: MediaTypeColorScheme!
+    private let playbackType: Int8
+    private let item: MediaItem?
+    private let container: MediaContainer?
+    private let colorScheme: MediaTypeColorScheme
+
+    init(_ item: MediaItem) {
+        playbackType = 0
+        self.item = item
+        self.container = nil
+        self.colorScheme = item.containerType.colorScheme
+        super.init(nibName: nil, bundle: nil)
+    }
     
-    init(){
+    init(_ container: MediaContainer){
+        playbackType = 1
+        self.container = container
+        self.item = nil
+        self.colorScheme = container.containerType.colorScheme
         super.init(nibName: nil, bundle: nil)
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    deinit {
+        removeObservers()
     }
 
     override func viewDidLoad() {
@@ -69,24 +85,8 @@ class PlayerViewController: UIViewController {
         super.viewWillDisappear(animated)
         Native().sl.f(msg: "Player screen unloaded")
         player?.pause()
-        removeObservers()
     }
 
-}
-
-extension PlayerViewController{
-    func loadItem(_ item: MediaItem){
-        playbackType = 0
-        self.item = item
-        self.container = nil
-        self.colorScheme = item.containerType.colorScheme
-    }
-    func loadContainer(_ container: MediaContainer){
-        playbackType = 1
-        self.container = container
-        self.item = nil
-        self.colorScheme = container.containerType.colorScheme
-    }
 }
 
 
@@ -193,6 +193,10 @@ extension PlayerViewController {
         
         nextButton.tintColor = playbackButtonsColor
         nextButton.addTarget(self, action: #selector(skipForward), for: .touchUpInside)
+        if playbackType==0{
+            nextButton.alpha = 0.0
+            nextButton.isUserInteractionEnabled = false
+        }
         
         closeButton.tintColor = colorScheme.surface.uiColorLight()
         closeButton.addTarget(self, action: #selector(dismissView), for: .touchUpInside)
@@ -204,10 +208,7 @@ extension PlayerViewController {
             closeButton.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor, constant: 20)
         ])
 
-        let buttonStack = UIStackView(arrangedSubviews: [previousButton, playButton])
-        if playbackType==1{
-            buttonStack.addArrangedSubview(nextButton)
-        }
+        let buttonStack = UIStackView(arrangedSubviews: [previousButton, playButton, nextButton])
         buttonStack.axis = .horizontal
         buttonStack.distribution = .equalSpacing
         buttonStack.spacing = 55
@@ -244,6 +245,8 @@ extension PlayerViewController {
         guard let url = URL(string: item!.resolvedContentLink), (item != nil) else {
             fatalError("Invalid URL")
         }
+        
+        Native().sl.i(msg: "setting up player for item: \(item!.name)")
 
         // Set AVAsset HTTP headers
         let assetOptions: [String: Any] = [
@@ -271,9 +274,12 @@ extension PlayerViewController {
     private func setupQueuePlayer(onComplete: @escaping ()->Void){
         guard container != nil else { return }
         Task{
+            let index = Int(container!.itemPointer)
+            Native().sl.i(msg: "setting up player for item: \((container!.mediaItems[index] as! MediaItem).name)")
+            
             var mediaQueue = container!.mediaItems
                 if container!.itemPointer>0{
-                    mediaQueue.removeSubrange(0..<Int(container!.itemPointer))
+                    mediaQueue.removeSubrange(0..<index)
                 }
 
             let playerItems: [AVPlayerItem] = mediaQueue.map {
@@ -333,7 +339,7 @@ extension PlayerViewController {
             player?.removeTimeObserver(timeObserverToken)
         }
         
-        if let currentItem = currentItem {
+        if playbackType==1, let currentItem = currentItem {
             currentItem.removeObserver(self, forKeyPath: "status")
         }
         NotificationCenter.default.removeObserver(self)
@@ -357,21 +363,21 @@ extension PlayerViewController{
 
 
         // 🔹 Track playback progress
-        timeObserverToken = player?.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.01, preferredTimescale: CMTimeScale(NSEC_PER_SEC)), queue: DispatchQueue.main) { time in
-            guard let duration = self.player?.currentItem?.duration else { return }
+        timeObserverToken = player?.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.01, preferredTimescale: CMTimeScale(NSEC_PER_SEC)), queue: DispatchQueue.main) {[weak self] time in
+            guard self != nil, let duration = self!.player?.currentItem?.duration else { return }
 
             let durationSeconds = CMTimeGetSeconds(duration)
             let currentSeconds = CMTimeGetSeconds(time)
             let remainingTime = durationSeconds - currentSeconds
 
             if remainingTime.isFinite {
-                self.timeCounterLabel.text = self.formatTime(seconds: Int(remainingTime))
+                self!.timeCounterLabel.text = self!.formatTime(seconds: Int(remainingTime))
             }
 
-            guard !self.startSeeking else { return }
+            guard !self!.blockPlayerProgressSet else { return }
             if durationSeconds > 0 {
                 let progress = Float(currentSeconds / durationSeconds)
-                self.progressBar.setProgress(progress, animated: true)
+                self!.progressBar.setProgress(progress, animated: true)
 //                Native().sl.i(msg: "🟢 Progress updated: \(progress)")
             }
         }
@@ -383,13 +389,13 @@ extension PlayerViewController{
                 switch player.timeControlStatus {
                 case .playing:
                     removePulsatingAnimation()
-                    Native().sl.fr(msg: "▶️ Player")
+//                    Native().sl.fr(msg: "▶️ Player")
                 case .paused:
                     removePulsatingAnimation()
-                    Native().sl.fr(msg: "⏸️ Player")
+//                    Native().sl.fr(msg: "⏸️ Player")
                 case .waitingToPlayAtSpecifiedRate:
                     setupPlayerLoadingIndication()
-                    Native().sl.fr(msg: "⏳ Player")
+//                    Native().sl.fr(msg: "⏳ Player")
                 @unknown default:
                     Native().sl.fr(msg: "❓ Player")
                 }
@@ -427,7 +433,7 @@ extension PlayerViewController{
         case .began:
             startSeekPosition = location.x
             startSeekSeconds = CMTimeGetSeconds(player.currentTime())
-            startSeeking = true
+            blockPlayerProgressSet = true
             playerControlsHideTask.cancel()
         case .changed:
             player.seek(to: newTime, toleranceBefore: tolerance, toleranceAfter: tolerance)
@@ -448,7 +454,7 @@ extension PlayerViewController{
         let percentage = max(0, min(1, location.x / progressWidth))
         let newTime = CMTime(seconds: Double(percentage) * durationSeconds, preferredTimescale: 600)
 
-        startSeeking = true
+        blockPlayerProgressSet = true
         player.seek(to: newTime, toleranceBefore: .zero, toleranceAfter: .zero)
         progressBar.setProgress(Float(percentage), animated: false)
         setupProgressSetRelease()
@@ -482,10 +488,8 @@ extension PlayerViewController{
         
         player?.seek(to: CMTime(seconds: 0, preferredTimescale: 600))
         progressBar.setProgress(0.0, animated: false)
-//        guard let player = player else { return }
-//        let currentTime = CMTimeGetSeconds(player.currentTime())
-//        let newTime = max(0, currentTime - 10)
-//        player.seek(to: CMTime(seconds: newTime, preferredTimescale: 600))
+        blockPlayerProgressSet = true
+        setupProgressSetRelease()
     }
 
     @objc private func skipForward() {
@@ -493,19 +497,10 @@ extension PlayerViewController{
         guard let queuePlayer = player as? AVQueuePlayer else { return }
         
         queuePlayer.advanceToNextItem()
-//        guard let player = player, let duration = player.currentItem?.duration else { return }
-//        let currentTime = CMTimeGetSeconds(player.currentTime())
-//        let durationSeconds = CMTimeGetSeconds(duration)
-//        let newTime = min(durationSeconds, currentTime + 10)
-//        player.seek(to: CMTime(seconds: newTime, preferredTimescale: 600))
     }
     
     @objc private func dismissView() {
         self.dismiss(animated: true)
-//        guard let player = player else { return }
-//        let currentTime = CMTimeGetSeconds(player.currentTime())
-//        let newTime = max(0, currentTime - 10)
-//        player.seek(to: CMTime(seconds: newTime, preferredTimescale: 600))
     }
     
     private func animateTimeCounter() {
@@ -531,7 +526,7 @@ extension PlayerViewController{
         playerProgressSetTask.cancel()
         playerProgressSetTask = Task{
             try await Task.sleep(for:.seconds(2))
-            startSeeking = false
+            blockPlayerProgressSet = false
         }
     }
     
@@ -570,7 +565,7 @@ extension PlayerViewController{
     private func addPulsatingAnimation() {
         let pulseAnimation = CABasicAnimation(keyPath: "opacity")
         pulseAnimation.fromValue = 1.0
-        pulseAnimation.toValue = 0.75
+        pulseAnimation.toValue = 0.72
         pulseAnimation.duration = 0.8
         pulseAnimation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
         pulseAnimation.autoreverses = true

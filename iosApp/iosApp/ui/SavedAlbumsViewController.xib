@@ -21,35 +21,41 @@
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <subviews>
                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="_" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="KWH-zX-lBS">
-                    <rect key="frame" x="10" y="619.66666666666663" width="373" height="26.333333333333371"/>
+                    <rect key="frame" x="10" y="539.66666666666663" width="373" height="26.333333333333371"/>
                     <fontDescription key="fontDescription" type="system" pointSize="22"/>
                     <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                     <nil key="highlightedColor"/>
                 </label>
                 <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="xR7-vy-Fof">
-                    <rect key="frame" x="160.66666666666666" y="726" width="72" height="42"/>
+                    <rect key="frame" x="161.66666666666666" y="726" width="70" height="42"/>
                     <fontDescription key="fontDescription" type="system" pointSize="25"/>
                     <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
-                    <state key="normal" title="Button"/>
+                    <state key="normal" title="Album"/>
                     <connections>
-                        <action selector="buttonAction:" destination="-1" eventType="touchUpInside" id="DhF-LN-7li"/>
+                        <action selector="albumButtonAction:" destination="-1" eventType="touchUpInside" id="DhF-LN-7li"/>
                     </connections>
                 </button>
-                <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" animating="YES" style="large" translatesAutoresizingMaskIntoConstraints="NO" id="SYC-hR-9Rl">
-                    <rect key="frame" x="178" y="407.66666666666669" width="37" height="37"/>
-                </activityIndicatorView>
+                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ERW-Vt-6a7">
+                    <rect key="frame" x="172.66666666666666" y="646" width="48" height="42"/>
+                    <fontDescription key="fontDescription" type="system" pointSize="25"/>
+                    <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                    <state key="normal" title="Item"/>
+                    <connections>
+                        <action selector="itemButtonAction" destination="-1" eventType="touchUpInside" id="CMx-Hk-CIw"/>
+                    </connections>
+                </button>
             </subviews>
             <viewLayoutGuide key="safeArea" id="fnl-2z-Ty3"/>
             <color key="backgroundColor" systemColor="systemBackgroundColor"/>
             <constraints>
-                <constraint firstItem="SYC-hR-9Rl" firstAttribute="centerY" secondItem="i5M-Pr-FkT" secondAttribute="centerY" id="Cp0-7h-mvA"/>
+                <constraint firstItem="xR7-vy-Fof" firstAttribute="top" secondItem="ERW-Vt-6a7" secondAttribute="bottom" constant="38" id="A1o-sz-EOG"/>
                 <constraint firstItem="fnl-2z-Ty3" firstAttribute="trailing" secondItem="KWH-zX-lBS" secondAttribute="trailing" constant="10" id="DP5-Ie-yX7"/>
                 <constraint firstItem="xR7-vy-Fof" firstAttribute="centerX" secondItem="i5M-Pr-FkT" secondAttribute="centerX" id="MHR-p5-xCA"/>
                 <constraint firstItem="KWH-zX-lBS" firstAttribute="centerX" secondItem="i5M-Pr-FkT" secondAttribute="centerX" id="b3T-pj-uIQ"/>
+                <constraint firstItem="ERW-Vt-6a7" firstAttribute="top" secondItem="KWH-zX-lBS" secondAttribute="bottom" constant="80" id="cUy-qe-PDh"/>
                 <constraint firstItem="KWH-zX-lBS" firstAttribute="leading" secondItem="fnl-2z-Ty3" secondAttribute="leading" constant="10" id="hLb-kj-5Rf"/>
                 <constraint firstItem="fnl-2z-Ty3" firstAttribute="bottom" secondItem="xR7-vy-Fof" secondAttribute="bottom" constant="50" id="pYe-j0-7qP"/>
-                <constraint firstItem="xR7-vy-Fof" firstAttribute="top" secondItem="KWH-zX-lBS" secondAttribute="bottom" constant="80" id="yRz-qq-9bb"/>
-                <constraint firstItem="SYC-hR-9Rl" firstAttribute="centerX" secondItem="i5M-Pr-FkT" secondAttribute="centerX" id="yiY-cd-4z0"/>
+                <constraint firstItem="ERW-Vt-6a7" firstAttribute="centerX" secondItem="i5M-Pr-FkT" secondAttribute="centerX" id="rbt-cu-M1U"/>
             </constraints>
             <point key="canvasLocation" x="130.53435114503816" y="-11.267605633802818"/>
         </view>
