@@ -361,7 +361,6 @@ extension PlayerViewController{
             object: nil
         )
 
-
         // 🔹 Track playback progress
         timeObserverToken = player?.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.01, preferredTimescale: CMTimeScale(NSEC_PER_SEC)), queue: DispatchQueue.main) {[weak self] time in
             guard self != nil, let duration = self!.player?.currentItem?.duration else { return }
@@ -409,6 +408,9 @@ extension PlayerViewController{
                 player?.play()
             case .failed:
                 Native().sl.w(msg: "Failed to load media: \(playerItem.error?.localizedDescription ?? "Unknown error")")
+                //MARK: show error icon with an option to reload media
+                player?.pause()
+                dismiss(animated: true)
             case .unknown:
                 Native().sl.fr(msg: "PlayerItem status unknown")
             @unknown default:
@@ -482,7 +484,6 @@ extension PlayerViewController{
         observeNewItem(queuePlayer.currentItem)
     }
 
-
     @objc private func skipBackward() {
         setupControlsHide()
         
@@ -494,9 +495,8 @@ extension PlayerViewController{
 
     @objc private func skipForward() {
         setupControlsHide()
-        guard let queuePlayer = player as? AVQueuePlayer else { return }
-        
-        queuePlayer.advanceToNextItem()
+        advanceToNextItem()
+//        Native().sl.w(obj: queuePlayer.items())
     }
     
     @objc private func dismissView() {
@@ -518,8 +518,26 @@ extension PlayerViewController{
 
     
     @objc private func playerDidFinishPlaying() {
-        Native().sl.i(msg: "🏁 Video playback completed")
-        dismiss(animated: true)
+        if (playbackType==0){
+            dismiss(animated: true)
+        } else {
+            advanceToNextItem()
+        }
+    }
+    
+    private func advanceToNextItem(){
+        guard let queuePlayer = player as? AVQueuePlayer else { return }
+        
+        player?.seek(to: CMTime(seconds: 0, preferredTimescale: 600))
+        progressBar.setProgress(0.0, animated: false)
+        blockPlayerProgressSet = true
+        setupProgressSetRelease()
+        
+        if queuePlayer.items().count > 1{
+            queuePlayer.advanceToNextItem()
+            guard let url = (queuePlayer.items()[1].asset as? AVURLAsset)?.url else {return}
+            Native().sl.i(msg: "Advancing to next item: \(String(describing: url))")
+        }
     }
 
     private func setupProgressSetRelease(){
