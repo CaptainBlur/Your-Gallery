@@ -107,7 +107,14 @@ extension MediaContainerViewController {
             Native().sl.w(msg: "media items list is empty")
             return
         }
-        let item: MediaItem = mediaContainer.mediaItems[index] as! MediaItem
+        guard let item: MediaItem = mediaContainer.mediaItems[index] as? MediaItem else {
+            Native().sl.w(msg: "media item is empty: \(index)")
+            
+            cell.nameLabel.text = "N/A"
+            cell.sizeLabel.text = "N/A"
+            
+            return
+        }
         cell.nameLabel.text = item.name
         cell.sizeLabel.text = item.size
         cell.imageView.kf.setImage(

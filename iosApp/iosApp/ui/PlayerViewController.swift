@@ -30,6 +30,7 @@ class PlayerViewController: UIViewController {
     private let previousButton = UIButton()
     private let nextButton = UIButton()
     private let closeButton = UIButton()
+    private let unablePlayImage = UIImageView()
     
     private var playerProgressSetTask: Task<Void, Error> = Task(){}
     private var playerControlsHideTask: Task<Void, Error> = Task(){}
@@ -160,7 +161,7 @@ extension PlayerViewController {
         seekAreaView.translatesAutoresizingMaskIntoConstraints = false
         seekAreaView.backgroundColor = UIColor.clear
         seekAreaView.isUserInteractionEnabled = true
-        controlsContainerView.addSubview(seekAreaView)
+        view.addSubview(seekAreaView)
 
         NSLayoutConstraint.activate([
             seekAreaView.leadingAnchor.constraint(equalTo: progressBar.leadingAnchor),
@@ -176,27 +177,51 @@ extension PlayerViewController {
         seekAreaView.addGestureRecognizer(progressTapGesture)
         progressTapGesture.require(toFail: progressPanGesture)
         
+        //Unable to play image
+        let symbolConfig = UIImage.SymbolConfiguration(hierarchicalColor: colorScheme.surfaceContainerHigh.uiColorLight())
+        unablePlayImage.image = UIImage(systemName: "play.slash.fill", withConfiguration: symbolConfig)
+        unablePlayImage.translatesAutoresizingMaskIntoConstraints = false
+        unablePlayImage.isHidden = true
+        view.addSubview(unablePlayImage)
+
+        NSLayoutConstraint.activate([
+            unablePlayImage.centerXAnchor.constraint(equalTo: controlsContainerView.centerXAnchor),
+            unablePlayImage.centerYAnchor.constraint(equalTo: controlsContainerView.centerYAnchor),
+            unablePlayImage.widthAnchor.constraint(equalToConstant: 45),
+            unablePlayImage.heightAnchor.constraint(equalToConstant: 45)
+        ])
+        
+        
         //Buttons
         let playbackButtonsColor = colorScheme.surfaceContainerHigh.uiColorLight().withAlphaComponent(0.88)
         let playConfig = UIImage.SymbolConfiguration(pointSize: 45, weight: .semibold)
         let config = UIImage.SymbolConfiguration(pointSize: 35, weight: .semibold)
         playButton.setImage(UIImage(systemName: "pause.fill", withConfiguration: playConfig), for: .normal)
+        playButton.setImage(UIImage(systemName: "pause.fill", withConfiguration: playConfig), for: .highlighted)
         previousButton.setImage(UIImage(systemName: "backward.fill", withConfiguration: config), for: .normal)
+        previousButton.setImage(UIImage(systemName: "backward.fill", withConfiguration: config), for: .highlighted)
         nextButton.setImage(UIImage(systemName: "forward.fill", withConfiguration: config), for: .normal)
+        nextButton.setImage(UIImage(systemName: "forward.fill", withConfiguration: config), for: .highlighted)
         closeButton.setImage(UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 26, weight: .medium)), for: .normal)
         
         playButton.tintColor = playbackButtonsColor
-        playButton.addTarget(self, action: #selector(togglePlayPause), for: .touchUpInside)
+        playButton.addTarget(self, action: #selector(animateButtonDown(_:)), for: .touchDown)
+        playButton.addTarget(self, action: #selector(togglePlayPause), for: [.touchUpInside, .touchUpOutside])
+        playButton.translatesAutoresizingMaskIntoConstraints = false
+//        playButton.addTarget(self, action: #selector(togglePlayPause), for: .touchUpInside)
         
         previousButton.tintColor = playbackButtonsColor
+        previousButton.addTarget(self, action: #selector(animateButtonDown(_:)), for: .touchDown)
         previousButton.addTarget(self, action: #selector(skipBackward), for: .touchUpInside)
+        previousButton.translatesAutoresizingMaskIntoConstraints = false
         
         nextButton.tintColor = playbackButtonsColor
+        nextButton.addTarget(self, action: #selector(animateButtonDown(_:)), for: .touchDown)
         nextButton.addTarget(self, action: #selector(skipForward), for: .touchUpInside)
         if playbackType==0{
-            nextButton.alpha = 0.0
-            nextButton.isUserInteractionEnabled = false
+            nextButton.isHidden = true
         }
+        nextButton.translatesAutoresizingMaskIntoConstraints = false
         
         closeButton.tintColor = colorScheme.surface.uiColorLight()
         closeButton.addTarget(self, action: #selector(dismissView), for: .touchUpInside)
@@ -208,21 +233,20 @@ extension PlayerViewController {
             closeButton.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor, constant: 20)
         ])
 
-        let buttonStack = UIStackView(arrangedSubviews: [previousButton, playButton, nextButton])
-        buttonStack.axis = .horizontal
-        buttonStack.distribution = .equalSpacing
-        buttonStack.spacing = 55
-        buttonStack.translatesAutoresizingMaskIntoConstraints = false
-        controlsContainerView.addSubview(buttonStack)
+        controlsContainerView.addSubview(previousButton)
+        controlsContainerView.addSubview(playButton)
+        controlsContainerView.addSubview(nextButton)
 
         NSLayoutConstraint.activate([
-            buttonStack.centerXAnchor.constraint(equalTo: controlsContainerView.centerXAnchor),
-            buttonStack.centerYAnchor.constraint(equalTo: controlsContainerView.centerYAnchor),
+            playButton.centerXAnchor.constraint(equalTo: controlsContainerView.centerXAnchor),
+            playButton.centerYAnchor.constraint(equalTo: controlsContainerView.centerYAnchor),
             
-            closeButton.topAnchor.constraint(equalTo: controlsContainerView.topAnchor, constant: 20),
-            closeButton.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor, constant: 20)
+            previousButton.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
+            previousButton.trailingAnchor.constraint(equalTo: playButton.leadingAnchor, constant: -55),
+            
+            nextButton.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
+            nextButton.leadingAnchor.constraint(equalTo: playButton.trailingAnchor, constant: 55)
         ])
-
     }
     
     private func setupPlayback(){
@@ -348,10 +372,10 @@ extension PlayerViewController {
 
 extension PlayerViewController{
     private func addObservers() {
-        // 🔹 Observe playback state
+        // Observe playback state
         player?.addObserver(self, forKeyPath: "timeControlStatus", options: [.new, .initial], context: nil)
 
-        // 🔹 Track video completion
+        // Track video completion
         NotificationCenter.default.addObserver(self, selector: #selector(playerDidFinishPlaying), name: .AVPlayerItemDidPlayToEndTime, object: player?.currentItem)
         
         NotificationCenter.default.addObserver(
@@ -361,7 +385,7 @@ extension PlayerViewController{
             object: nil
         )
 
-        // 🔹 Track playback progress
+        // Track playback progress
         timeObserverToken = player?.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.01, preferredTimescale: CMTimeScale(NSEC_PER_SEC)), queue: DispatchQueue.main) {[weak self] time in
             guard self != nil, let duration = self!.player?.currentItem?.duration else { return }
 
@@ -408,9 +432,10 @@ extension PlayerViewController{
                 player?.play()
             case .failed:
                 Native().sl.w(msg: "Failed to load media: \(playerItem.error?.localizedDescription ?? "Unknown error")")
-                //MARK: show error icon with an option to reload media
                 player?.pause()
-                dismiss(animated: true)
+                playButton.isHidden = true
+                unablePlayImage.isHidden = false
+                resetTimeCounter()
             case .unknown:
                 Native().sl.fr(msg: "PlayerItem status unknown")
             @unknown default:
@@ -464,6 +489,8 @@ extension PlayerViewController{
     }
     
     @objc private func togglePlayPause() {
+        animateButtonUp(playButton)
+        
         guard let player = player else { return }
         let playConfig = UIImage.SymbolConfiguration(pointSize: 45, weight: .semibold)
         let playIcon = UIImage(systemName: "play.fill", withConfiguration: playConfig)
@@ -472,9 +499,11 @@ extension PlayerViewController{
         if player.timeControlStatus == .playing {
             player.pause()
             playButton.setImage(playIcon, for: .normal)
+            playButton.setImage(playIcon, for: .highlighted)
         } else {
             player.play()
             playButton.setImage(pauseIcon, for: .normal)
+            playButton.setImage(pauseIcon, for: .highlighted)
         }
         setupControlsHide()
     }
@@ -486,6 +515,7 @@ extension PlayerViewController{
 
     @objc private func skipBackward() {
         setupControlsHide()
+        animateButtonUp(previousButton)
         
         player?.seek(to: CMTime(seconds: 0, preferredTimescale: 600))
         progressBar.setProgress(0.0, animated: false)
@@ -495,12 +525,20 @@ extension PlayerViewController{
 
     @objc private func skipForward() {
         setupControlsHide()
+        animateButtonUp(nextButton)
         advanceToNextItem()
 //        Native().sl.w(obj: queuePlayer.items())
     }
     
     @objc private func dismissView() {
         self.dismiss(animated: true)
+    }
+    
+    private func resetTimeCounter(){
+        UIView.animate(withDuration: 0.0) {
+            self.timeCounterLabel.alpha = 0
+            self.timeCounterLabel.transform = .identity // Resets to original state
+        }
     }
     
     private func animateTimeCounter() {
@@ -529,14 +567,23 @@ extension PlayerViewController{
         guard let queuePlayer = player as? AVQueuePlayer else { return }
         
         player?.seek(to: CMTime(seconds: 0, preferredTimescale: 600))
+        player?.play()
         progressBar.setProgress(0.0, animated: false)
+        timeCounterLabel.text = "--:--"
         blockPlayerProgressSet = true
         setupProgressSetRelease()
         
+        playButton.isHidden = false
+        unablePlayImage.isHidden = true
+        
         if queuePlayer.items().count > 1{
-            queuePlayer.advanceToNextItem()
             guard let url = (queuePlayer.items()[1].asset as? AVURLAsset)?.url else {return}
             Native().sl.i(msg: "Advancing to next item: \(String(describing: url))")
+            queuePlayer.advanceToNextItem()
+            playerDidAdvanceToNextItem()
+        }
+        if queuePlayer.items().count == 1 {
+            nextButton.isHidden = true
         }
     }
 
@@ -578,6 +625,24 @@ extension PlayerViewController{
             try await Task.sleep(for:.seconds(3))
             addPulsatingAnimation()
         }
+    }
+    
+    @objc func animateButtonDown(_ sender: UIButton) {
+        UIView.animate(withDuration: 0.1) {
+            sender.transform = CGAffineTransform(scaleX: 0.85, y: 0.85)
+        }
+    }
+
+    // Animation function (bounce back)
+    @objc func animateButtonUp(_ sender: UIButton) {
+        UIView.animate(withDuration: 0.2,
+                       delay: 0,
+                       usingSpringWithDamping: 0.5,
+                       initialSpringVelocity: 2.0,
+                       options: [],
+                       animations: {
+            sender.transform = .identity
+        })
     }
     
     private func addPulsatingAnimation() {

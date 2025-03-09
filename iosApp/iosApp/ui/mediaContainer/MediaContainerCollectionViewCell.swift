@@ -21,7 +21,7 @@ class MediaContainerCollectionViewCell: UICollectionViewCell {
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(cellTapped))
         contentView.addGestureRecognizer(tapGesture)
-        contentView.isUserInteractionEnabled = true // Ensure interactions are enabled
+        contentView.isUserInteractionEnabled = true
     }
 
     @objc private func cellTapped() {

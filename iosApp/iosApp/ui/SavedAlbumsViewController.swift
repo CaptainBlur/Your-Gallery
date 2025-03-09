@@ -47,6 +47,8 @@ class SavedAlbumsViewController: UIViewController {
 //            "https://bunkr.cr/a/Zix5amPZ" //ortega
             "https://bunkr.si/a/J0wRO0lB" //mirari
 //            "https://bunkr.cr/a/bAJi6vwd" //kim
+//        "https://bunkr.fi/a/L7Drn4GL" //girl
+//        "https://bunkr.si/a/XOGKz13p" //hastya cam
         checkAvailableLink()
     }
 }
