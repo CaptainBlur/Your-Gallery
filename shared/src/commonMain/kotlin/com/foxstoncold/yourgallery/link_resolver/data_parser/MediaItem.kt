@@ -1,6 +1,8 @@
 package com.foxstoncold.yourgallery.link_resolver.data_parser
 
 import com.fleeksoft.ksoup.Ksoup
+import com.fleeksoft.ksoup.nodes.Document
+import com.fleeksoft.ksoup.nodes.Element
 import com.foxstoncold.yourgallery.link_resolver.sl
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -61,17 +63,21 @@ data class BunkrMediaItem(
             val htmlString = handleHttpRequest{
                 client.get(pageLink)
             } ?: return null
-            val fileName = pageLink.substringAfterLast("/")
-
             val doc = Ksoup.parse(htmlString)
+
             val itemName = doc.select("h1.text-subs").text()
             val itemSize = doc.select("p.text-xs").firstOrNull()?.ownText()?.trim()
             val thumbnailUrl = doc.select("meta[property=og:image]").attr("content")
-
-            val vc: EncryptedVideoSource = client.post("https://bunkr.cr/api/vs") {
-                contentType(ContentType.Application.Json)
-                setBody("{\"slug\":\"$fileName\"}")
-            }.body()
+            val slug = extractJsVariable(doc, "jsSlug")
+            val vc: EncryptedVideoSource = try {
+                client.post("https://bunkr.cr/api/vs") {
+                    contentType(ContentType.Application.Json)
+                    setBody("{\"slug\":\"$slug\"}")
+                }.body()
+            } catch (e: Exception){
+                sl.s("error getting encrypted vs: ", e)
+                return null
+            }
             val url = decryptVideoUrl(vc)
             if (url==null){
                 sl.s("failed to decrypt url: ${vc.url}")
@@ -107,6 +113,23 @@ data class BunkrMediaItem(
                 e.printStackTrace()
                 null
             }
+        }
+
+        private fun extractJsVariable(doc: Document, variableName: String): String? {
+            val scripts = doc.select("script")
+
+            for (script in scripts) {
+                val scriptText = script.html()
+
+                val regex = Regex("""var\s+$variableName\s*=\s*['"]([^'"]+)['"];""")
+                val match = regex.find(scriptText)
+
+                if (match != null) {
+                    return match.groupValues[1]
+                }
+            }
+
+            return null
         }
     }
 }

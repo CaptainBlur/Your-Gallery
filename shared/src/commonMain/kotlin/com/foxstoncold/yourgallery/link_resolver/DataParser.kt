@@ -66,7 +66,7 @@ class DataParser{
         }
 
         return if (parsedDataCache.containsKey(sourceType.url)){
-            sl.f("getting cached data")
+            sl.fst("getting cached data")
             parsedDataCache[sourceType.url]
         }
         else if (sourceType.isItem){
@@ -75,13 +75,13 @@ class DataParser{
                 0-> BunkrMediaItem.parse(client, sourceType.url)
                 else-> null
             }
-            parsedDataCache[sourceType.url] = parsed
+            parsed?.let { parsedDataCache[sourceType.url] = it }
             return parsed
         }
         else if (sourceType.isAlbum){
             sl.f("parsing album")
             val parsed = MediaContainer.parse(client, sourceType)
-            parsedDataCache[sourceType.url] = parsed
+            parsed?.let { parsedDataCache[sourceType.url] = it }
             return parsed
         }
         else{

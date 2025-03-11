@@ -26,25 +26,28 @@ class MediaContainerCollectionViewCell: UICollectionViewCell {
 
     @objc private func cellTapped() {
         animateTap()
-        tapAction()
     }
     private func animateTap() {
         UIView.animate(withDuration: 0.1, animations: { [weak self] in
            self?.contentView.transform = CGAffineTransform(scaleX: 0.98, y: 0.98) // Shrink effect
         },
         completion: {[weak self] _ in
-           UIView.animate(withDuration: 0.1) {
+            UIView.animate(withDuration: 0.1, animations: {
                self?.contentView.transform = CGAffineTransform.identity // Restore size
-           }
+           }, completion: {[weak self] _ in
+               self?.tapAction()
+           })
         })
-        
-//        UIView.animate(withDuration: 0.1, animations: {
-//            self.contentView.alpha = 0.9 // Fade out effect
-//        }, completion: { _ in
-//            UIView.animate(withDuration: 0.1) {
-//                self.contentView.alpha = 1.0 // Restore alpha
-//            }
-//        })
+    }
+    
+    func animateHighlight(){
+        UIView.animate(withDuration: 0.35, animations: { [weak self] in
+            self?.contentView.transform = CGAffineTransform(scaleX: 1.05, y: 1.05)
+        }, completion: { [weak self] _ in
+            UIView.animate(withDuration: 0.4, animations: {
+                self?.contentView.transform = CGAffineTransform.identity // Restore size
+            })
+        })
     }
 }
 

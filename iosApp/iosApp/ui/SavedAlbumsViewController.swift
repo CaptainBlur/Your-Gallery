@@ -31,14 +31,18 @@ class SavedAlbumsViewController: UIViewController {
         checkAvailableLink()
 //        present(MediaContainerViewController(dp.testMediaContainer), animated: true)
     }
-
+    @IBAction func labelButtonAction(_ sender: Any) {
+        checkAvailableLink()
+    }
+    
     
     @IBAction func itemButtonAction() {
         startLink =
 //            "https://bunkr.si/f/WanpgCl4bG8V7" //cristyren short
 //            "https://bunkr.cr/v/xbsUbrPczwB09" //longer vid
 //            "https://bunkr.pk/f/VDFUE3kAMayGo" //selti
-            "https://bunkr.site/f/bsXOm7h9zGvSC" //diana
+//            "https://bunkr.site/f/bsXOm7h9zGvSC" //diana
+        "https://cdn-fries.bunkr.ru/2023-08-08_at_21-40_id_545336713568854016-YQZx7ej4.mp4" //shawty
         checkAvailableLink()
     }
     

@@ -22,6 +22,10 @@ enum class MediaContainerType(
             onTertiary = Color("#FFFFFF", "#5D0056"),
             onError = Color("#FFFFFF", "#690005"),
 
+            onPrimaryContainer = Color("#E2D8FF", "#E2D8FF"),
+            onSecondaryContainer = Color("#4E4086", "#BDAEFC"),
+            onTertiaryContainer = Color("#FFD0F1", "#FFD0F1"),
+
             primaryContainer = Color("#6740E3", "#6740E3"),
             secondaryContainer = Color("#C1B1FF", "#4C3E84"),
             tertiaryContainer = Color("#A8269B", "#A8269B"),
@@ -31,8 +35,6 @@ enum class MediaContainerType(
             secondaryContainer_medium = Color("#7163AB", "#9586D1"),
             tertiaryContainer_medium = Color("#A8269B", "#E15CCF"),
             errorContainer_medium = Color("#CF2C27", "#FF5449"),
-
-            onContainer = Color("#E2D8FF", "#BDAEFC"),
 
             surfaceDim = Color("#DDD8E5", "#14121B"),
             surface = Color("#FDF7FF", "#14121B"),
@@ -75,12 +77,14 @@ data class MediaTypeColorScheme(
     val tertiaryContainer: Color = Color("", ""),
     val errorContainer: Color = Color("", ""),
 
+    val onPrimaryContainer: Color = Color("", ""),
+    val onSecondaryContainer: Color = Color("", ""),
+    val onTertiaryContainer: Color = Color("", ""),
+
     val primaryContainer_medium: Color = Color("", ""),
     val secondaryContainer_medium: Color = Color("", ""),
     val tertiaryContainer_medium: Color = Color("", ""),
     val errorContainer_medium: Color = Color("", ""),
-
-    val onContainer: Color = Color("", ""),
 
     val surfaceDim: Color = Color("",""),
     val surface: Color = Color("", ""),

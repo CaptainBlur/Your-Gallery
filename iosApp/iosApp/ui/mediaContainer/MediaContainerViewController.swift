@@ -9,12 +9,13 @@ import UIKit
 import AVKit
 import shared
 
-class MediaContainerViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource {
+class MediaContainerViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource{
     private let mediaContainer: MediaContainer
     private let colorScheme: MediaTypeColorScheme
     
     private var collectionView: UICollectionView!
     private var isCollectionViewSetup = false
+    private var lastPlayedItemIndexPath: IndexPath? = nil
     
     init(_ mc: MediaContainer){
         mediaContainer = mc
@@ -129,6 +130,9 @@ extension MediaContainerViewController {
             guard self != nil else { return }
             self!.mediaContainer.itemPointer = Int32(index)
             let playerController = PlayerViewController(self!.mediaContainer)
+            playerController.onDismissAction = {[weak self] lastLink in
+                self?.findAndMarkLastPlayedItem(link: lastLink)
+            }
             self!.present(playerController, animated: true)
         }
     }
@@ -158,4 +162,26 @@ extension MediaContainerViewController {
         let nib = UINib(nibName: "MCCollectionViewCell", bundle: nil)
         collectionView.register(nib, forCellWithReuseIdentifier: "CustomCell")
     }
+}
+
+extension MediaContainerViewController: UIScrollViewDelegate{
+    private func findAndMarkLastPlayedItem(link: String){
+        Task{
+            let items = mediaContainer.mediaItems
+            let item = items.filter{ item in
+                (item as! MediaItem).resolvedContentLink == link
+            }[0] as! MediaItem
+            
+            lastPlayedItemIndexPath = IndexPath(item: Int(item.index), section: 0)
+            collectionView.scrollToItem(at: lastPlayedItemIndexPath!, at: .centeredVertically, animated: true)
+        }
+    }
+    
+    func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView){
+        guard let indexPath = lastPlayedItemIndexPath else {return}
+        let cell = collectionView.cellForItem(at: indexPath)
+        (cell as? MediaContainerCollectionViewCell)?.animateHighlight()
+        lastPlayedItemIndexPath = nil
+    }
+
 }
