@@ -42,6 +42,11 @@ class PlayerViewController: UIPageViewController {
     private var playerLoadingIndicationTask: Task<Void, Error> = Task(){}
     private var controlsHidden = false
     
+    /*
+     0 for setting up container;
+     1 for displaying single item;
+     2 for displaying a sequence
+     */
     private let playbackType: Int8
     private let item: MediaItem?
     private let container: MediaContainer?
@@ -53,6 +58,7 @@ class PlayerViewController: UIPageViewController {
      it uses Container to create SequenceState
      */
     init(_ container: MediaContainer){
+        fatalError()
         playbackType = 0
         self.container = container
         self.item = nil
@@ -61,23 +67,34 @@ class PlayerViewController: UIPageViewController {
         super.init(nibName: nil, bundle: nil)
     }
 
-    //For displaying one item, video or photo
+    //For displaying one item, video or photo;
+    //Also setting up a SequenceState object
     init(_ item: MediaItem) {
-        playbackType = 1
+        playbackType = 0
         self.item = item
         self.colorScheme = item.containerType.colorScheme
         self.container = nil
-        self.state = nil
-        super.init(transitionStyle: .pageCurl, navigationOrientation: .horizontal)
+        self.state = SequenceState(item: item)
+        super.init(transitionStyle: .scroll, navigationOrientation: .horizontal)
     }
     
-    private init(state: SequenceState, container: MediaContainer){
-        playbackType = 2
+    private init(state: SequenceState, item: MediaItem?, container: MediaContainer?){
         self.state = state
-        self.item = nil
+        self.item = item
         self.container = container
-        self.colorScheme = container.containerType.colorScheme
-        super.init(nibName: nil, bundle: nil)
+        
+        if item != nil{
+            self.playbackType = 1
+            self.colorScheme = item!.containerType.colorScheme
+            Native().sl.i(msg: "VC created to display an item: \(item!.name)")
+        } else if container != nil {
+            self.playbackType = 2
+            self.colorScheme = container!.containerType.colorScheme
+            Native().sl.i(msg: "VC created to display a container: \(container!.name)")
+        } else {
+            fatalError("Provide either an item or a container")
+        }
+        super.init(transitionStyle: .scroll, navigationOrientation: .horizontal)
     }
 
     required init?(coder: NSCoder) {
@@ -90,10 +107,9 @@ class PlayerViewController: UIPageViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        Native().sl.f(msg: "Player screen loaded")
-
         view.backgroundColor = .black
-
+        
+        setPagerVC()
         setupPlayback()
     }
 
@@ -109,28 +125,60 @@ class PlayerViewController: UIPageViewController {
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        Native().sl.f(msg: "Player screen unloaded")
         player?.pause()
         
         guard playbackType==0, let link = (self.player?.currentItem?.asset as? AVURLAsset)?.url.absoluteString else { return }
         self.onDismissAction(link)
     }
+        
+    private func setPagerVC(){
+        guard let sequenceState = state, playbackType == 0 else {return}
+        
+        let produced: PlayerViewController =
+        if item != nil{
+            sequenceState[item!]
+        }
+        else if container != nil{
+            sequenceState[container!]
+        }
+        else {
+            fatalError("Provide either an item or a container")
+        }
+        
+        dataSource = self
+//        delegate = self
+        
+//        for view in view.subviews {
+//            if let scrollView = view as? UIScrollView {
+//                scrollView.isScrollEnabled = false
+//            }
+//        }
+        
+        self.setViewControllers([produced], direction: .forward, animated: false)
+    }
 
     private func setupPlayback(){
         switch playbackType{
-        case 0:
-            setupMixedPlayback()
         case 1:
-            setupPlayer()
-            setupControlViews()
-            setupControlsHide()
-//            setupQueuePlayer{
-//                self.setupControlViews()
-//                self.setupControlsHide()
-//            }
+            setupSingleItemPlayback()
         default:
             return
         }
+        
+//        switch playbackType{
+//        case 0:
+//            setupMixedPlayback()
+//        case 1:
+//            setupPlayer()
+//            setupControlViews()
+//            setupControlsHide()
+////            setupQueuePlayer{
+////                self.setupControlViews()
+////                self.setupControlsHide()
+////            }
+//        default:
+//            return
+//        }
     }
 }
 
@@ -298,6 +346,34 @@ extension PlayerViewController {
     }
     
     //MARK: setup player
+    
+    private func setupSingleItemPlayback(){
+        contentImageView.kf.setImage(
+            with: URL(string: "https://simp6.jpg5.su/images3/RDT_20240109_13312442616131863919202839b34b97d1c7df5c9.md.webp"),
+            options: [
+                .cacheOriginalImage,
+                .transition(.fade(0.2)),
+                .scaleFactor(1.0),
+//                .requestModifier(modifier),
+            ],
+            completionHandler: { result in
+                if case .failure(let error) = result {
+                    Native().sl.w(msg: "Image Loading Failed: \(error.localizedDescription)")
+                }
+            }
+        )
+        contentImageView.contentMode = .scaleAspectFit
+        contentImageView.clipsToBounds = true
+        contentImageView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(contentImageView)
+        
+        NSLayoutConstraint.activate([
+            contentImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            contentImageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            contentImageView.topAnchor.constraint(equalTo: view.topAnchor),
+            contentImageView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+    }
     
     private func setupPlayer() {
         guard let url = URL(string: item!.resolvedContentLink), (item != nil) else {
@@ -748,14 +824,19 @@ extension PlayerViewController{
     }
 }
 
-extension PlayerViewController{
-    
+extension PlayerViewController {
     /*
      When we need to swipe to next/previous item:
-     1. Call a subscript that creates a new state
-     2. Depending on which subsequence (video or photo) is entered,
-        retrieve new controller for photo, or video items array, if needed
-     3. New state for each item is requered
+     - Call either the 'item' or the 'container' VC's constructor from the outside
+     - During initialization, create a new state and hold the reference
+     both item and container can generate a universal state
+     - On viewDidLoad(), produce a new controller, using subscript, and pass it to PagerVC
+     - Newly created controller holds a pre-defined State reference,
+     and ready for displaying items
+     
+     1. Depending on which subsequence (video or photo) is entered,
+     retrieve new controller for photo, or video items array, if needed
+     2. Every item change (photo or video) should be suplemented by the state transition
      */
     private struct SequenceState{
         let count: Int
@@ -774,11 +855,21 @@ extension PlayerViewController{
             currentItem.contentType == .video
         }
         
-        subscript(container: MediaContainer)-> SequenceState{
-            
-            let state = SequenceState(count: container.mediaItems.count, pointer: Int(container.itemPointer), itemsStore: container.mediaItems as! [MediaItem])
-            
-            return state
+        private init(count: Int, pointer: Int, itemsStore: [MediaItem]) {
+            self.count = count
+            self.pointer = pointer
+            self.itemsStore = itemsStore
+        }
+        
+        init(item: MediaItem){
+            self.count = 1
+            self.pointer = 0
+            self.itemsStore = [item]
+        }
+        init(container: MediaContainer){
+            self.count = container.mediaItems.count
+            self.pointer = Int(container.itemPointer)
+            self.itemsStore = container.mediaItems as! [MediaItem]
         }
         
         subscript(_ currentState: SequenceState, container: MediaContainer, directionUp: Bool)-> SequenceState?{
@@ -790,18 +881,27 @@ extension PlayerViewController{
             return SequenceState(count: currentState.count, pointer: currentState.pointer + (directionUp ? 1 : -1), itemsStore: container.mediaItems as! [MediaItem])
         }
         
-        subscript(_ container: MediaContainer)-> PlayerViewController{
-            PlayerViewController(state: self, container: container)
+        subscript(_ item: MediaItem)-> PlayerViewController{
+            PlayerViewController(state: self, item: item, container: nil)
         }
-        subscript()-> Task<[AVPlayerItem], Never>{
-            Task {
+        subscript(_ container: MediaContainer)-> PlayerViewController{
+            PlayerViewController(state: self, item: nil, container: container)
+        }
+        
+        subscript()-> Task<[AVPlayerItem], Never>?{
+            guard self.isCurrentVideo else {
+                Native().sl.s(msg: "cannot generate player items sequence for photo")
+                return nil
+            }
+            
+            return Task<[AVPlayerItem], Never>.detached {
                 let firstItem = itemsStore[pointer]
                 Native().sl.i(msg: "setting up player for item: \(firstItem.name)")
                 
                 var mediaQueue = itemsStore
-                    if pointer>0{
-                        mediaQueue.removeSubrange(0..<pointer)
-                    }
+                if pointer>0{
+                    mediaQueue.removeSubrange(0..<pointer)
+                }
                 let playerItems: [AVPlayerItem] = mediaQueue.map { item in
                     guard let url = URL(string: item.resolvedContentLink) else {
                         fatalError("Invalid URL")
@@ -810,7 +910,7 @@ extension PlayerViewController{
                     let assetOptions: [String: Any] = [
                         "AVURLAssetHTTPHeaderFieldsKey": item.headers
                     ]
-
+                    
                     let asset = AVURLAsset(url: url, options: assetOptions)
                     return AVPlayerItem(asset: asset)
                 }
@@ -818,16 +918,31 @@ extension PlayerViewController{
             }
         }
     }
+}
     
-//
-//    func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
+extension PlayerViewController: UIPageViewControllerDataSource {
+    
+    func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
+        guard let playerVC = viewController as? PlayerViewController,
+              let state = playerVC.state,
+              let item = playerVC.item
+        else {return nil}
+        return state[item]
 //        let index = (viewControllers?.first as? PlayerViewController)?.index ?? 0
 //        return index > 0 ? viewController(for: index - 1) : nil
-//    }
-//
-//    func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
+    }
+
+    func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
+        guard let playerVC = viewController as? PlayerViewController,
+              let state = playerVC.state,
+              let item = playerVC.item
+        else {return nil}
+        return state[item]
 //        let index = (viewControllers?.first as? PlayerViewController)?.index ?? 0
 //        return index < images.count - 1 ? viewController(for: index + 1) : nil
-//    }
-//    
+    }
 }
+
+//extension PlayerViewController: UIPageViewControllerDataSource{
+//    
+//}
