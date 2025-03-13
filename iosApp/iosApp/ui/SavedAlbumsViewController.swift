@@ -42,17 +42,21 @@ class SavedAlbumsViewController: UIViewController {
 //            "https://bunkr.cr/v/xbsUbrPczwB09" //longer vid
 //            "https://bunkr.pk/f/VDFUE3kAMayGo" //selti
 //            "https://bunkr.site/f/bsXOm7h9zGvSC" //diana
-        "https://cdn-fries.bunkr.ru/2023-08-08_at_21-40_id_545336713568854016-YQZx7ej4.mp4" //shawty
+//        "https://cdn-fries.bunkr.ru/2023-08-08_at_21-40_id_545336713568854016-YQZx7ej4.mp4" //shawty
+        "https://bunkr.ph/f/90kxoF270vnbB" //kait
         checkAvailableLink()
     }
     
     @IBAction func albumButtonAction(_ sender: UIButton) {
         startLink =
-//            "https://bunkr.cr/a/Zix5amPZ" //ortega
-            "https://bunkr.si/a/J0wRO0lB" //mirari
-//            "https://bunkr.cr/a/bAJi6vwd" //kim
+//        "https://bunkr.cr/a/Zix5amPZ" //ortega
+//        "https://bunkr.si/a/J0wRO0lB" //mirari
+//        "https://bunkr.cr/a/bAJi6vwd" //kim
 //        "https://bunkr.fi/a/L7Drn4GL" //girl
 //        "https://bunkr.si/a/XOGKz13p" //hastya cam
+        
+//        "https://bunkr.cr/a/Uz0c4pOi" // kiko w photos
+        "https://bunkr.cr/a/ZzBMUGJU" //kait only photos
         checkAvailableLink()
     }
 }

@@ -8,11 +8,13 @@
 import UIKit
 import AVFoundation
 import shared
+import Kingfisher
 
 class PlayerViewController: UIViewController {
 
     private var player: AVPlayer?
     private var playerLayer: AVPlayerLayer?
+    private var contentImageView: UIImageView = UIImageView()
     private var timeObserverToken: Any?
     private var currentItem: AVPlayerItem?
     
@@ -102,10 +104,11 @@ class PlayerViewController: UIViewController {
             setupControlViews()
             setupControlsHide()
         case 1:
-            setupQueuePlayer{
-                self.setupControlViews()
-                self.setupControlsHide()
-            }
+            setupMixedPlayback()
+//            setupQueuePlayer{
+//                self.setupControlViews()
+//                self.setupControlsHide()
+//            }
         default:
             return
         }
@@ -310,7 +313,12 @@ extension PlayerViewController {
         guard container != nil else { return }
         Task{
             let index = Int(container!.itemPointer)
-            Native().sl.i(msg: "setting up player for item: \((container!.mediaItems[index] as! MediaItem).name)")
+            let firstItem = container!.mediaItems[index] as! MediaItem
+            Native().sl.i(msg: "setting up player for item: \(firstItem.name)")
+            if firstItem.contentType==MediaItemContentType.photo{
+                setupMixedPlayback()
+                return
+            }
             
             var mediaQueue = container!.mediaItems
                 if container!.itemPointer>0{
@@ -349,6 +357,45 @@ extension PlayerViewController {
             
             player?.play()
         }
+    }
+    
+    private func setupMixedPlayback(){
+        let index = Int(container!.itemPointer)
+        let item = container!.mediaItems[index] as! MediaItem
+
+        let modifier = AnyModifier { request in
+            var r = request
+            guard let key = item.headers.keys.first, let val = item.headers[key] else {return r}
+            r.setValue(val, forHTTPHeaderField: key)
+            
+            return r
+        }
+        
+        contentImageView.kf.setImage(
+            with: URL(string: item.resolvedContentLink),
+            options: [
+                .cacheOriginalImage,
+                .transition(.fade(0.2)),
+                .scaleFactor(1.0),
+                .requestModifier(modifier),
+            ],
+            completionHandler: { result in
+                if case .failure(let error) = result {
+                    Native().sl.w(msg: "Image Loading Failed: \(error.localizedDescription)")
+                }
+            }
+        )
+        contentImageView.contentMode = .scaleAspectFit
+        contentImageView.clipsToBounds = true
+        contentImageView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(contentImageView)
+        
+        NSLayoutConstraint.activate([
+            contentImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            contentImageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            contentImageView.topAnchor.constraint(equalTo: view.topAnchor),
+            contentImageView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
     }
 }
 

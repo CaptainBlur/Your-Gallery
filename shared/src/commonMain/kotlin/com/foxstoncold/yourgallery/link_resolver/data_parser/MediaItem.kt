@@ -23,16 +23,22 @@ abstract class MediaItem {
     open val index: Int = -1
     open val name: String = "N/A"
     open val size: String = "N/A"
+    open val contentType: MediaItemContentType = MediaItemContentType.UNDEFINED
     open val resolvedContentLink: String = "N/A"
     open val resolvedThumbnailLink: String = "N/A"
     open val headers: Map<String, String> = emptyMap()
     open val containerType: MediaContainerType = MediaContainerType.UNDEFINED
 }
 
+enum class MediaItemContentType{
+    UNDEFINED, PHOTO, VIDEO, OTHER
+}
+
 data class BunkrMediaItem(
     override val index: Int,
     override val name: String,
     override val size: String,
+    override val contentType: MediaItemContentType,
 
     val pageLink: String,
     val srcLink: String = "N/A",
@@ -40,7 +46,7 @@ data class BunkrMediaItem(
     val contentPreviewLink: String = "N/A",
     val passPreviewForThumbnail: Boolean
 ): MediaItem(){
-    override val headers: Map<String, String> = mapOf("Referer" to "https://get.bunkrr.su/")
+    override val headers: Map<String, String> = mapOf("Referer" to "https://bunkr.cr/")
     override val resolvedContentLink: String
         get() = srcLink
     override val resolvedThumbnailLink: String
@@ -67,29 +73,46 @@ data class BunkrMediaItem(
 
             val itemName = doc.select("h1.text-subs").text()
             val itemSize = doc.select("p.text-xs").firstOrNull()?.ownText()?.trim()
-            val thumbnailUrl = doc.select("meta[property=og:image]").attr("content")
-            val slug = extractJsVariable(doc, "jsSlug")
-            val vc: EncryptedVideoSource = try {
-                client.post("https://bunkr.cr/api/vs") {
-                    contentType(ContentType.Application.Json)
-                    setBody("{\"slug\":\"$slug\"}")
-                }.body()
-            } catch (e: Exception){
-                sl.s("error getting encrypted vs: ", e)
-                return null
+            val thumbnailUrl = refineThumbnailLink(doc)
+
+            val url: String?
+            val contentType: MediaItemContentType
+
+            val photoSourceLink = doc.select("img.w-full.h-full.absolute.opacity-20.object-cover.blur-sm.z-10").firstOrNull()?.attr("src")
+            if (!photoSourceLink.isNullOrEmpty()){
+                url = photoSourceLink
+                contentType = MediaItemContentType.PHOTO
             }
-            val url = decryptVideoUrl(vc)
-            if (url==null){
-                sl.s("failed to decrypt url: ${vc.url}")
-                return null
+            else {
+                val slug = extractJsVariable(doc, "jsSlug")
+                val vc: EncryptedVideoSource = try {
+                    client.post("https://bunkr.cr/api/vs") {
+                        contentType(ContentType.Application.Json)
+                        setBody("{\"slug\":\"$slug\"}")
+                    }.body()
+                } catch (e: Exception) {
+                    sl.s("error getting encrypted vs: ", e)
+                    return null
+                }
+                url = decryptVideoUrl(vc)
+                if (url == null) {
+                    sl.s("failed to decrypt url: ${vc.url}")
+                    return null
+                }
+                contentType = MediaItemContentType.VIDEO
             }
 
-//            val album = RemoteAlbumModel(albumTitle, albumSize, mediaItems)
-//            i(fileName + fileSize + thumbnailUrl)
-//            i(url)
             return BunkrMediaItem(
-                index, itemName, itemSize?:"N/A", pageLink, url, thumbnailUrl, "", false
+                index, itemName, itemSize?:"N/A", contentType, pageLink, url, thumbnailUrl, "", false
             )
+        }
+
+        private fun refineThumbnailLink(doc: Document): String{
+            val rawUrl = doc.select("meta[property=og:image]").attr("content")
+            val regex = Regex("\\.\\p{Lower}{3,}\\.\\p{Lower}{3,}$")
+            val match = regex.find(rawUrl) ?: return rawUrl
+
+            return rawUrl.substring(0 until match.range.first) + ".png"
         }
 
         @OptIn(ExperimentalEncodingApi::class)

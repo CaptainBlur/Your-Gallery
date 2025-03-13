@@ -8,6 +8,7 @@
 import UIKit
 import AVKit
 import shared
+import Kingfisher
 
 class MediaContainerViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource{
     private let mediaContainer: MediaContainer
@@ -97,8 +98,6 @@ extension MediaContainerViewController {
     private func setupViewCell(_ cell: MediaContainerCollectionViewCell, _ index: Int){
         cell.layer.cornerRadius = 14
         cell.layer.borderWidth = 2
-        //medium for videos, regular for photos
-        cell.layer.borderColor = colorScheme.secondaryContainer_medium.uiColor().cgColor
         
 //        cell.backgroundColor = colorScheme.surfaceDim.uiColor()
         cell.nameLabel.textColor = colorScheme.onSurface.uiColor()
@@ -116,14 +115,25 @@ extension MediaContainerViewController {
             
             return
         }
+        
+        cell.layer.borderColor = item.contentType==MediaItemContentType.video ? colorScheme.secondaryContainer_medium.uiColor().cgColor : colorScheme.secondaryContainer.uiColor().cgColor
         cell.nameLabel.text = item.name
         cell.sizeLabel.text = item.size
+        let modifier = AnyModifier { request in
+            var r = request
+            guard let key = item.headers.keys.first, let val = item.headers[key] else {return r}
+            r.setValue(val, forHTTPHeaderField: key)
+            
+            return r
+        }
+        
         cell.imageView.kf.setImage(
             with: URL(string: item.resolvedThumbnailLink),
             options: [
                 .scaleFactor(UIScreen.main.scale),
                 .transition(.fade(0.2)),
-                .cacheOriginalImage
+                .cacheOriginalImage,
+                .requestModifier(modifier)
             ]
         )
         cell.tapAction = { [weak self] in
