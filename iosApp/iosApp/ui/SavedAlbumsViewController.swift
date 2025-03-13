@@ -56,7 +56,7 @@ class SavedAlbumsViewController: UIViewController {
 //        "https://cdn-fries.bunkr.ru/2023-08-08_at_21-40_id_545336713568854016-YQZx7ej4.mp4" //shawty
 //        "https://bunkr.cr/f/Mrf66nQAxSx1T" //kait
 //        "https://bunkr.cr/f/RYvrs1I7HCCyi" //kait 2
-        "https://bunkr.cr/f/iEIeeuncrgQ4G" //ritori
+        "https://bunkr.cr/f/RwFU2mpje32yh" //ritori
         checkAvailableLink()
     }
     
@@ -68,8 +68,9 @@ class SavedAlbumsViewController: UIViewController {
 //        "https://bunkr.fi/a/L7Drn4GL" //girl
 //        "https://bunkr.si/a/XOGKz13p" //hastya cam
         
-//        "https://bunkr.cr/a/Uz0c4pOi" // kiko w photos
-        "https://bunkr.cr/a/ZzBMUGJU" //kait only photos
+        "https://bunkr.cr/a/Uz0c4pOi" // kiko w photos
+//        "https://bunkr.cr/a/ZzBMUGJU" //kait only photos
+//        "https://bunkr.cr/a/FVE7ci9d" //ritori photos
         checkAvailableLink()
     }
 }

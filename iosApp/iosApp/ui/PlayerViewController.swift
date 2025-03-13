@@ -57,13 +57,12 @@ class PlayerViewController: UIPageViewController {
      it uses Container to create SequenceState
      */
     init(_ container: MediaContainer){
-        fatalError()
         playbackType = 0
         self.container = container
         self.item = nil
-        self.colorScheme = nil
-        self.state = nil
-        super.init(nibName: nil, bundle: nil)
+        self.colorScheme = container.containerType.colorScheme
+        self.state = SequenceState(container: container)
+        super.init(transitionStyle: .scroll, navigationOrientation: .horizontal)
     }
 
     //For displaying one item, video or photo;
@@ -108,8 +107,11 @@ class PlayerViewController: UIPageViewController {
         super.viewDidLoad()
         view.backgroundColor = .black
         
+        dataSource = self
+        
         setPagerVC()
-        setupPlayback()
+        setupTestImage()
+//        setupPlayback()
     }
 
     override func viewDidLayoutSubviews() {
@@ -150,6 +152,10 @@ class PlayerViewController: UIPageViewController {
     private func setupPlayback(){
         switch playbackType{
         case 1:
+//            dataSource = nil
+            setupSingleItemPlayback()
+        case 2:
+            dataSource = self
             setupSingleItemPlayback()
         default:
             return
@@ -176,6 +182,34 @@ class PlayerViewController: UIPageViewController {
 extension PlayerViewController {
     
     //MARK: setup views
+    
+    private func setupTestImage(){
+        contentImageView.kf.setImage(
+            with: URL(string: "https://img10.reactor.cc/pics/post/full/David-Dubnitskiy-%28photographer%29-Anastasiia-Galliard-%D0%B3%D1%80%D1%83%D0%B4%D1%8C-%D0%AD%D1%80%D0%BE%D1%82%D0%B8%D0%BA%D0%B0-8830844.jpeg"),
+            options: [
+                .cacheOriginalImage,
+                .transition(.fade(0.2)),
+                .scaleFactor(1.0),
+//                .requestModifier(modifier),
+            ],
+            completionHandler: { result in
+                if case .failure(let error) = result {
+                    Native().sl.w(msg: "Image Loading Failed: \(error.localizedDescription)")
+                }
+            }
+        )
+        contentImageView.contentMode = .scaleAspectFit
+        contentImageView.clipsToBounds = true
+        contentImageView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(contentImageView)
+        
+        NSLayoutConstraint.activate([
+            contentImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            contentImageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            contentImageView.topAnchor.constraint(equalTo: view.topAnchor),
+            contentImageView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+    }
     
     private func setupControlViews(){
         guard let cS = colorScheme, let sequenceState = state else {return}
@@ -308,7 +342,6 @@ extension PlayerViewController {
         //Buttons
         let playbackButtonsColor = cS.surfaceContainerHigh.uiColorLight().withAlphaComponent(0.88)
         let playConfig = UIImage.SymbolConfiguration(pointSize: 45, weight: .semibold)
-        let config = UIImage.SymbolConfiguration(pointSize: 35, weight: .semibold)
         playButton.setImage(UIImage(systemName: "pause.fill", withConfiguration: playConfig), for: .normal)
         playButton.setImage(UIImage(systemName: "pause.fill", withConfiguration: playConfig), for: .highlighted)
         
@@ -325,18 +358,17 @@ extension PlayerViewController {
         ])
     }
     
-    //MARK: setup player
+    //MARK: setup content display
     
     private func setupSingleItemPlayback(){
-        dataSource = nil
         guard let sequenceState = state else {return}
         let item = sequenceState.itemsStore[sequenceState.pointer]
         
         switch item.contentType{
         case .photo:
-            setupImage()
+            setupImage(item)
         case .video:
-            setupVideo()
+            setupVideo(item)
         default:
             Native().sl.s(msg: "unknown type for item: \(item.name)")
         }
@@ -344,64 +376,65 @@ extension PlayerViewController {
         setupControlViews()
         setupControlsHide()
         
-        func setupImage(){
-            contentImageView.kf.setImage(
-                with: URL(string: item.resolvedContentLink),
-                options: [
-                    .cacheOriginalImage,
-                    .transition(.fade(0.2)),
-                    .scaleFactor(1.0),
-                    //                .requestModifier(modifier),
-                ],
-                completionHandler: { result in
-                    if case .failure(let error) = result {
-                        Native().sl.w(msg: "Image Loading Failed: \(error.localizedDescription)")
-                    }
+    }
+    
+    private func setupImage(_ item: MediaItem){
+        contentImageView.kf.setImage(
+            with: URL(string: item.resolvedContentLink),
+            options: [
+                .cacheOriginalImage,
+                .transition(.fade(0.2)),
+                .scaleFactor(1.0),
+                //                .requestModifier(modifier),
+            ],
+            completionHandler: { result in
+                if case .failure(let error) = result {
+                    Native().sl.w(msg: "Image Loading Failed: \(error.localizedDescription)")
                 }
-            )
-            contentImageView.contentMode = .scaleAspectFit
-            contentImageView.clipsToBounds = true
-            contentImageView.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview(contentImageView)
-            
-            NSLayoutConstraint.activate([
-                contentImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                contentImageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                contentImageView.topAnchor.constraint(equalTo: view.topAnchor),
-                contentImageView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-            ])
+            }
+        )
+        contentImageView.contentMode = .scaleAspectFit
+        contentImageView.clipsToBounds = true
+        contentImageView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(contentImageView)
+        
+        NSLayoutConstraint.activate([
+            contentImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            contentImageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            contentImageView.topAnchor.constraint(equalTo: view.topAnchor),
+            contentImageView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+    }
+    
+    private func setupVideo(_ item: MediaItem){
+        guard let url = URL(string: item.resolvedContentLink) else {
+            Native().sl.s(msg: "Invalid URL: \(item.resolvedContentLink)")
+            return
         }
         
-        func setupVideo(){
-            guard let url = URL(string: item.resolvedContentLink) else {
-                Native().sl.s(msg: "Invalid URL: \(item.resolvedContentLink)")
-                return
-            }
-            
 //            Native().sl.i(msg: "setting up player for item: \(item.name)")
 
-            // Set AVAsset HTTP headers
-            let assetOptions: [String: Any] = [
-                "AVURLAssetHTTPHeaderFieldsKey": item.headers
-            ]
+        // Set AVAsset HTTP headers
+        let assetOptions: [String: Any] = [
+            "AVURLAssetHTTPHeaderFieldsKey": item.headers
+        ]
 
-            // Create an AVURLAsset with custom headers
-            let asset = AVURLAsset(url: url, options: assetOptions)
-            let playerItem = AVPlayerItem(asset: asset)
-            player = AVPlayer(playerItem: playerItem)
-            
-            playerLayer = AVPlayerLayer(player: player)
-            playerLayer?.videoGravity = .resizeAspect
+        // Create an AVURLAsset with custom headers
+        let asset = AVURLAsset(url: url, options: assetOptions)
+        let playerItem = AVPlayerItem(asset: asset)
+        player = AVPlayer(playerItem: playerItem)
+        
+        playerLayer = AVPlayerLayer(player: player)
+        playerLayer?.videoGravity = .resizeAspect
 
-            if let playerLayer = playerLayer {
-                view.layer.addSublayer(playerLayer)
-            }
-
-            addObservers()
-            playerItem.addObserver(self, forKeyPath: "status", options: [.new, .initial], context: nil)
-            
-            player?.play()
+        if let playerLayer = playerLayer {
+            view.layer.addSublayer(playerLayer)
         }
+
+        addObservers()
+        playerItem.addObserver(self, forKeyPath: "status", options: [.new, .initial], context: nil)
+        
+        player?.play()
     }
     
     private func setupPlayer() {
@@ -433,95 +466,6 @@ extension PlayerViewController {
         playerItem.addObserver(self, forKeyPath: "status", options: [.new, .initial], context: nil)
         
         player?.play()
-    }
-    
-    private func setupQueuePlayer(onComplete: @escaping ()->Void){
-        guard container != nil else { return }
-        Task{
-            let index = Int(container!.itemPointer)
-            let firstItem = container!.mediaItems[index] as! MediaItem
-            Native().sl.i(msg: "setting up player for item: \(firstItem.name)")
-            if firstItem.contentType==MediaItemContentType.photo{
-                setupMixedPlayback()
-                return
-            }
-            
-            var mediaQueue = container!.mediaItems
-                if container!.itemPointer>0{
-                    mediaQueue.removeSubrange(0..<index)
-                }
-
-            let playerItems: [AVPlayerItem] = mediaQueue.map {
-                let item = $0 as! MediaItem
-                
-                guard let url = URL(string: item.resolvedContentLink) else {
-                    fatalError("Invalid URL")
-                }
-                
-                let assetOptions: [String: Any] = [
-                    "AVURLAssetHTTPHeaderFieldsKey": item.headers
-                ]
-
-                // Create an AVURLAsset with custom headers
-                let asset = AVURLAsset(url: url, options: assetOptions)
-                return AVPlayerItem(asset: asset)
-            }
-                        
-            player = AVQueuePlayer(items: playerItems)
-            
-            playerLayer = AVPlayerLayer(player: player)
-            playerLayer?.videoGravity = .resizeAspect
-
-            if let playerLayer = playerLayer {
-                view.layer.addSublayer(playerLayer)
-            }
-            
-            onComplete()
-
-            addObservers()
-            observeNewItem(player?.currentItem)
-            
-            player?.play()
-        }
-    }
-    
-    private func setupMixedPlayback(){
-        let index = Int(container!.itemPointer)
-        let item = container!.mediaItems[index] as! MediaItem
-
-        let modifier = AnyModifier { request in
-            var r = request
-            guard let key = item.headers.keys.first, let val = item.headers[key] else {return r}
-            r.setValue(val, forHTTPHeaderField: key)
-            
-            return r
-        }
-        
-        contentImageView.kf.setImage(
-            with: URL(string: item.resolvedContentLink),
-            options: [
-                .cacheOriginalImage,
-                .transition(.fade(0.2)),
-                .scaleFactor(1.0),
-                .requestModifier(modifier),
-            ],
-            completionHandler: { result in
-                if case .failure(let error) = result {
-                    Native().sl.w(msg: "Image Loading Failed: \(error.localizedDescription)")
-                }
-            }
-        )
-        contentImageView.contentMode = .scaleAspectFit
-        contentImageView.clipsToBounds = true
-        contentImageView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(contentImageView)
-        
-        NSLayoutConstraint.activate([
-            contentImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            contentImageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            contentImageView.topAnchor.constraint(equalTo: view.topAnchor),
-            contentImageView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
     }
 }
 
@@ -934,11 +878,8 @@ extension PlayerViewController {
             self.itemsStore = container.mediaItems as! [MediaItem]
         }
         
-        subscript(_ currentState: SequenceState, container: MediaContainer, directionUp: Bool)-> SequenceState?{
-            guard
-                currentState.pointer>0 && !directionUp,
-                currentState.pointer<count && directionUp
-            else {return nil}
+        subscript(currentState: SequenceState, container: MediaContainer, directionUp: Bool)-> SequenceState?{
+            if (currentState.pointer==0 && !directionUp) || (currentState.pointer==currentState.count && directionUp){ return nil}
             
             return SequenceState(count: currentState.count, pointer: currentState.pointer + (directionUp ? 1 : -1), itemsStore: container.mediaItems as! [MediaItem])
         }
@@ -948,36 +889,6 @@ extension PlayerViewController {
         }
         subscript(_ container: MediaContainer)-> PlayerViewController{
             PlayerViewController(state: self, item: nil, container: container)
-        }
-        
-        subscript()-> Task<[AVPlayerItem], Never>?{
-            guard self.isCurrentVideo else {
-                Native().sl.s(msg: "cannot generate player items sequence for photo")
-                return nil
-            }
-            
-            return Task<[AVPlayerItem], Never>.detached {
-                let firstItem = itemsStore[pointer]
-                Native().sl.i(msg: "setting up player for item: \(firstItem.name)")
-                
-                var mediaQueue = itemsStore
-                if pointer>0{
-                    mediaQueue.removeSubrange(0..<pointer)
-                }
-                let playerItems: [AVPlayerItem] = mediaQueue.map { item in
-                    guard let url = URL(string: item.resolvedContentLink) else {
-                        fatalError("Invalid URL")
-                    }
-                    
-                    let assetOptions: [String: Any] = [
-                        "AVURLAssetHTTPHeaderFieldsKey": item.headers
-                    ]
-                    
-                    let asset = AVURLAsset(url: url, options: assetOptions)
-                    return AVPlayerItem(asset: asset)
-                }
-                return playerItems
-            }
         }
     }
 }
@@ -990,8 +901,6 @@ extension PlayerViewController: UIPageViewControllerDataSource {
               let item = playerVC.item
         else {return nil}
         return state[item]
-//        let index = (viewControllers?.first as? PlayerViewController)?.index ?? 0
-//        return index > 0 ? viewController(for: index - 1) : nil
     }
 
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
@@ -1000,11 +909,5 @@ extension PlayerViewController: UIPageViewControllerDataSource {
               let item = playerVC.item
         else {return nil}
         return state[item]
-//        let index = (viewControllers?.first as? PlayerViewController)?.index ?? 0
-//        return index < images.count - 1 ? viewController(for: index + 1) : nil
     }
 }
-
-//extension PlayerViewController: UIPageViewControllerDataSource{
-//    
-//}
