@@ -10,7 +10,10 @@ import AVFoundation
 import shared
 import Kingfisher
 
-class PlayerViewController: UIViewController {
+class PlayerViewController: UIPageViewController {
+    //State is usually one-time assigned property,
+    //but it can be reassibgned in case of moving through video player subsequence
+    private var state: SequenceState?
 
     private var player: AVPlayer?
     private var playerLayer: AVPlayerLayer?
@@ -42,21 +45,37 @@ class PlayerViewController: UIViewController {
     private let playbackType: Int8
     private let item: MediaItem?
     private let container: MediaContainer?
-    private let colorScheme: MediaTypeColorScheme
+    private let colorScheme: MediaTypeColorScheme?
     var onDismissAction: (String)->Void = {_ in }
-
-    init(_ item: MediaItem) {
-        playbackType = 0
-        self.item = item
-        self.container = nil
-        self.colorScheme = item.containerType.colorScheme
-        super.init(nibName: nil, bundle: nil)
-    }
     
+    /*
+     For setting up media display sequence, without actual displaying;
+     it uses Container to create SequenceState
+     */
     init(_ container: MediaContainer){
-        playbackType = 1
+        playbackType = 0
         self.container = container
         self.item = nil
+        self.colorScheme = nil
+        self.state = nil
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    //For displaying one item, video or photo
+    init(_ item: MediaItem) {
+        playbackType = 1
+        self.item = item
+        self.colorScheme = item.containerType.colorScheme
+        self.container = nil
+        self.state = nil
+        super.init(transitionStyle: .pageCurl, navigationOrientation: .horizontal)
+    }
+    
+    private init(state: SequenceState, container: MediaContainer){
+        playbackType = 2
+        self.state = state
+        self.item = nil
+        self.container = container
         self.colorScheme = container.containerType.colorScheme
         super.init(nibName: nil, bundle: nil)
     }
@@ -93,18 +112,18 @@ class PlayerViewController: UIViewController {
         Native().sl.f(msg: "Player screen unloaded")
         player?.pause()
         
-        guard playbackType==1, let link = (self.player?.currentItem?.asset as? AVURLAsset)?.url.absoluteString else { return }
+        guard playbackType==0, let link = (self.player?.currentItem?.asset as? AVURLAsset)?.url.absoluteString else { return }
         self.onDismissAction(link)
     }
 
     private func setupPlayback(){
         switch playbackType{
         case 0:
+            setupMixedPlayback()
+        case 1:
             setupPlayer()
             setupControlViews()
             setupControlsHide()
-        case 1:
-            setupMixedPlayback()
 //            setupQueuePlayer{
 //                self.setupControlViews()
 //                self.setupControlsHide()
@@ -121,6 +140,8 @@ extension PlayerViewController {
     //MARK: setup views
     
     private func setupControlViews(){
+        guard let cS = colorScheme else {return}
+        
         //Controls container
         controlsContainerView.alpha = 1
         controlsContainerView.translatesAutoresizingMaskIntoConstraints = false
@@ -162,7 +183,7 @@ extension PlayerViewController {
         //Time counter
         timeCounterLabel.text = "--:--"
         timeCounterLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
-        timeCounterLabel.textColor = colorScheme.surfaceContainerLowest.uiColorLight()
+        timeCounterLabel.textColor = cS.surfaceContainerLowest.uiColorLight()
         timeCounterLabel.alpha = 0
         timeCounterLabel.translatesAutoresizingMaskIntoConstraints = false
         controlsContainerView.addSubview(timeCounterLabel)
@@ -170,8 +191,8 @@ extension PlayerViewController {
         //Progress bar
         progressBar.translatesAutoresizingMaskIntoConstraints = false
         progressBar.setProgress(0.0, animated: false)
-        progressBar.trackTintColor = colorScheme.surfaceContainerHigh.uiColor().withAlphaComponent(0.85)
-        progressBar.progressTintColor = colorScheme.tertiaryContainer_medium.uiColor().withAlphaComponent(0.95)
+        progressBar.trackTintColor = cS.surfaceContainerHigh.uiColor().withAlphaComponent(0.85)
+        progressBar.progressTintColor = cS.tertiaryContainer_medium.uiColor().withAlphaComponent(0.95)
         view.addSubview(progressBar)
         
         NSLayoutConstraint.activate([
@@ -205,7 +226,7 @@ extension PlayerViewController {
         progressTapGesture.require(toFail: progressPanGesture)
         
         //Unable to play image
-        let symbolConfig = UIImage.SymbolConfiguration(hierarchicalColor: colorScheme.surfaceContainerHigh.uiColorLight())
+        let symbolConfig = UIImage.SymbolConfiguration(hierarchicalColor: cS.surfaceContainerHigh.uiColorLight())
         unablePlayImage.image = UIImage(systemName: "play.slash.fill", withConfiguration: symbolConfig)
         unablePlayImage.translatesAutoresizingMaskIntoConstraints = false
         unablePlayImage.isHidden = true
@@ -220,7 +241,7 @@ extension PlayerViewController {
         
         
         //Buttons
-        let playbackButtonsColor = colorScheme.surfaceContainerHigh.uiColorLight().withAlphaComponent(0.88)
+        let playbackButtonsColor = cS.surfaceContainerHigh.uiColorLight().withAlphaComponent(0.88)
         let playConfig = UIImage.SymbolConfiguration(pointSize: 45, weight: .semibold)
         let config = UIImage.SymbolConfiguration(pointSize: 35, weight: .semibold)
         playButton.setImage(UIImage(systemName: "pause.fill", withConfiguration: playConfig), for: .normal)
@@ -245,12 +266,12 @@ extension PlayerViewController {
         nextButton.tintColor = playbackButtonsColor
         nextButton.addTarget(self, action: #selector(animateButtonDown(_:)), for: .touchDown)
         nextButton.addTarget(self, action: #selector(skipForward), for: .touchUpInside)
-        if playbackType==0{
+        if playbackType==1{
             nextButton.isHidden = true
         }
         nextButton.translatesAutoresizingMaskIntoConstraints = false
         
-        closeButton.tintColor = colorScheme.surface.uiColorLight()
+        closeButton.tintColor = cS.surface.uiColorLight()
         closeButton.addTarget(self, action: #selector(dismissView), for: .touchUpInside)
         closeButton.translatesAutoresizingMaskIntoConstraints = false
         controlsContainerView.addSubview(closeButton)
@@ -534,7 +555,7 @@ extension PlayerViewController{
     }
     
     private func removeObservers() {
-        if playbackType==0{
+        if playbackType==1{
             player?.currentItem?.removeObserver(self, forKeyPath: "status")
         }
         player?.removeObserver(self, forKeyPath: "timeControlStatus")
@@ -544,7 +565,7 @@ extension PlayerViewController{
             player?.removeTimeObserver(timeObserverToken)
         }
         
-        if playbackType==1, let currentItem = currentItem {
+        if playbackType==0, let currentItem = currentItem {
             currentItem.removeObserver(self, forKeyPath: "status")
         }
         NotificationCenter.default.removeObserver(self)
@@ -620,7 +641,7 @@ extension PlayerViewController{
 
     
     @objc private func playerDidFinishPlaying() {
-        if (playbackType==0){
+        if (playbackType==1){
             dismiss(animated: true)
         } else {
             advanceToNextItem()
@@ -725,4 +746,88 @@ extension PlayerViewController{
             sender.transform = .identity
         })
     }
+}
+
+extension PlayerViewController{
+    
+    /*
+     When we need to swipe to next/previous item:
+     1. Call a subscript that creates a new state
+     2. Depending on which subsequence (video or photo) is entered,
+        retrieve new controller for photo, or video items array, if needed
+     3. New state for each item is requered
+     */
+    private struct SequenceState{
+        let count: Int
+        let pointer: Int
+        
+        let itemsStore: [MediaItem]
+        
+        //For internal use only
+        private var currentItem: MediaItem {
+            itemsStore[pointer]
+        }
+        var isCurrentPhoto: Bool {
+            currentItem.contentType == .photo
+        }
+        var isCurrentVideo: Bool {
+            currentItem.contentType == .video
+        }
+        
+        subscript(container: MediaContainer)-> SequenceState{
+            
+            let state = SequenceState(count: container.mediaItems.count, pointer: Int(container.itemPointer), itemsStore: container.mediaItems as! [MediaItem])
+            
+            return state
+        }
+        
+        subscript(_ currentState: SequenceState, container: MediaContainer, directionUp: Bool)-> SequenceState?{
+            guard
+                currentState.pointer>0 && !directionUp,
+                currentState.pointer<count && directionUp
+            else {return nil}
+            
+            return SequenceState(count: currentState.count, pointer: currentState.pointer + (directionUp ? 1 : -1), itemsStore: container.mediaItems as! [MediaItem])
+        }
+        
+        subscript(_ container: MediaContainer)-> PlayerViewController{
+            PlayerViewController(state: self, container: container)
+        }
+        subscript()-> Task<[AVPlayerItem], Never>{
+            Task {
+                let firstItem = itemsStore[pointer]
+                Native().sl.i(msg: "setting up player for item: \(firstItem.name)")
+                
+                var mediaQueue = itemsStore
+                    if pointer>0{
+                        mediaQueue.removeSubrange(0..<pointer)
+                    }
+                let playerItems: [AVPlayerItem] = mediaQueue.map { item in
+                    guard let url = URL(string: item.resolvedContentLink) else {
+                        fatalError("Invalid URL")
+                    }
+                    
+                    let assetOptions: [String: Any] = [
+                        "AVURLAssetHTTPHeaderFieldsKey": item.headers
+                    ]
+
+                    let asset = AVURLAsset(url: url, options: assetOptions)
+                    return AVPlayerItem(asset: asset)
+                }
+                return playerItems
+            }
+        }
+    }
+    
+//
+//    func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
+//        let index = (viewControllers?.first as? PlayerViewController)?.index ?? 0
+//        return index > 0 ? viewController(for: index - 1) : nil
+//    }
+//
+//    func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
+//        let index = (viewControllers?.first as? PlayerViewController)?.index ?? 0
+//        return index < images.count - 1 ? viewController(for: index + 1) : nil
+//    }
+//    
 }

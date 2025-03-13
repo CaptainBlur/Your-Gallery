@@ -15,10 +15,8 @@ class SavedAlbumsViewController: UIViewController {
     @IBOutlet weak private var label: UILabel!
     
     var startLink: String = String()
-    private let dp = DataParser()
+    private let parserActor = ParserActor()
     private let colorScheme = MediaContainerType.bunkr.colorScheme
-    
-    private var performingParsing: Bool = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -43,7 +41,8 @@ class SavedAlbumsViewController: UIViewController {
 //            "https://bunkr.pk/f/VDFUE3kAMayGo" //selti
 //            "https://bunkr.site/f/bsXOm7h9zGvSC" //diana
 //        "https://cdn-fries.bunkr.ru/2023-08-08_at_21-40_id_545336713568854016-YQZx7ej4.mp4" //shawty
-        "https://bunkr.ph/f/90kxoF270vnbB" //kait
+//        "https://bunkr.cr/f/Mrf66nQAxSx1T" //kait
+        "https://bunkr.cr/f/RYvrs1I7HCCyi" //kait 2
         checkAvailableLink()
     }
     
@@ -63,29 +62,18 @@ class SavedAlbumsViewController: UIViewController {
 
 extension SavedAlbumsViewController{
     private func checkAvailableLink(){
-        guard !startLink.isEmpty, !performingParsing else { return }
+        guard !startLink.isEmpty else { return }
         
-        Task {
-            performingParsing = true
-            do {
-                // Call the function and unwrap its result
-                guard let result = try await dp.parseData(url: startLink) else {
-                    Native().sl.w(msg: "Error: getting parsed data")
-                    performingParsing = false
-                    return
-                }
-                
+        Task{
+            await parserActor.parseData(url: startLink){[weak self] result in
                 if let item = result as? MediaItem{
-                    present(PlayerViewController(item), animated: true)
-                } else if let container = result as? MediaContainer{
-                    Native().sl.i(msg: "entering media container")
-                    present(MediaContainerViewController(container), animated: true)
-//                    navigationController?.pushViewController(MediaContainerViewController(container), animated: true)
+                    self?.present(PlayerViewController(item), animated: true)
                 }
-            } catch {
-                Native().sl.s(msg: "Error: \(error.localizedDescription)")
+                else if let container = result as? MediaContainer{
+                    Native().sl.i(msg: "entering media container")
+                    self?.present(MediaContainerViewController(container), animated: true)
+                }
             }
-            performingParsing = false
         }
     }
     
@@ -98,3 +86,23 @@ extension SavedAlbumsViewController{
     }
 }
 
+extension SavedAlbumsViewController{
+    actor ParserActor{
+        private let dp = DataParser()
+        private var performingParsing = false
+        
+        func parseData(url: String, _ onComplete: @MainActor @escaping (Any?)->Void){
+            guard !performingParsing else { return }
+            Task{
+                performingParsing = true
+                do{
+                    let result = try await dp.parseData(url: url)
+                    await onComplete(result)
+                    performingParsing = false
+                } catch {
+                    Native().sl.s(msg: "Error: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+}
