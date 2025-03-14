@@ -32,10 +32,9 @@ class PlayerViewController: UIPageViewController {
     private var startSeekSeconds: Float64 = 0.0
     
     private let playButton = UIButton()
-    private let previousButton = UIButton()
-    private let nextButton = UIButton()
     private let closeButton = UIButton()
     private let unablePlayImage = UIImageView()
+    private let loadingIndicator = UIActivityIndicatorView(style: .large)
     
     private var playerProgressSetTask: Task<Void, Error> = Task(){}
     private var playerControlsHideTask: Task<Void, Error> = Task(){}
@@ -145,15 +144,6 @@ class PlayerViewController: UIPageViewController {
             fatalError("Provide either an item or a container")
         }
         
-        dataSource = self
-//        delegate = self
-        
-//        for view in view.subviews {
-//            if let scrollView = view as? UIScrollView {
-//                scrollView.isScrollEnabled = false
-//            }
-//        }
-        
         self.setViewControllers([produced], direction: .forward, animated: false)
     }
 
@@ -188,10 +178,10 @@ extension PlayerViewController {
     //MARK: setup views
     
     private func setupControlViews(){
-        guard let cS = colorScheme else {return}
+        guard let cS = colorScheme, let sequenceState = state else {return}
         
         //Controls container
-        controlsContainerView.alpha = 1
+        controlsContainerView.alpha = sequenceState.isCurrentPhoto ? 0 : 1
         controlsContainerView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(controlsContainerView)
         
@@ -204,6 +194,33 @@ extension PlayerViewController {
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTapGesture))
         view.addGestureRecognizer(tapGesture)
+        
+        //Close button
+        closeButton.setImage(UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 26, weight: .medium)), for: .normal)
+        
+        closeButton.tintColor = cS.surface.uiColorLight()
+        closeButton.addTarget(self, action: #selector(dismissView), for: .touchUpInside)
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        controlsContainerView.addSubview(closeButton)
+        
+        NSLayoutConstraint.activate([
+            closeButton.topAnchor.constraint(equalTo: controlsContainerView.topAnchor, constant: 20),
+            closeButton.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor, constant: 20)
+        ])
+        
+        //loading indicator
+        loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
+        loadingIndicator.color = cS.surface.uiColorLight()
+        controlsContainerView.addSubview(loadingIndicator)
+        
+        NSLayoutConstraint.activate([
+            loadingIndicator.centerXAnchor.constraint(equalTo: controlsContainerView.centerXAnchor),
+            loadingIndicator.centerYAnchor.constraint(equalTo: controlsContainerView.centerYAnchor),
+            loadingIndicator.widthAnchor.constraint(equalToConstant: 45),
+            loadingIndicator.heightAnchor.constraint(equalToConstant: 45)
+        ])
+        
+        if sequenceState.isCurrentPhoto {return}
         
         //Gradient view
         gradientView.translatesAutoresizingMaskIntoConstraints = false
@@ -274,7 +291,7 @@ extension PlayerViewController {
         progressTapGesture.require(toFail: progressPanGesture)
         
         //Unable to play image
-        let symbolConfig = UIImage.SymbolConfiguration(hierarchicalColor: cS.surfaceContainerHigh.uiColorLight())
+        let symbolConfig = UIImage.SymbolConfiguration(hierarchicalColor: cS.surfaceContainerHigh.uiColorLight().withAlphaComponent(0.95))
         unablePlayImage.image = UIImage(systemName: "play.slash.fill", withConfiguration: symbolConfig)
         unablePlayImage.translatesAutoresizingMaskIntoConstraints = false
         unablePlayImage.isHidden = true
@@ -294,85 +311,97 @@ extension PlayerViewController {
         let config = UIImage.SymbolConfiguration(pointSize: 35, weight: .semibold)
         playButton.setImage(UIImage(systemName: "pause.fill", withConfiguration: playConfig), for: .normal)
         playButton.setImage(UIImage(systemName: "pause.fill", withConfiguration: playConfig), for: .highlighted)
-        previousButton.setImage(UIImage(systemName: "backward.fill", withConfiguration: config), for: .normal)
-        previousButton.setImage(UIImage(systemName: "backward.fill", withConfiguration: config), for: .highlighted)
-        nextButton.setImage(UIImage(systemName: "forward.fill", withConfiguration: config), for: .normal)
-        nextButton.setImage(UIImage(systemName: "forward.fill", withConfiguration: config), for: .highlighted)
-        closeButton.setImage(UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 26, weight: .medium)), for: .normal)
         
         playButton.tintColor = playbackButtonsColor
         playButton.addTarget(self, action: #selector(animateButtonDown(_:)), for: .touchDown)
         playButton.addTarget(self, action: #selector(togglePlayPause), for: [.touchUpInside, .touchUpOutside])
         playButton.translatesAutoresizingMaskIntoConstraints = false
-//        playButton.addTarget(self, action: #selector(togglePlayPause), for: .touchUpInside)
         
-        previousButton.tintColor = playbackButtonsColor
-        previousButton.addTarget(self, action: #selector(animateButtonDown(_:)), for: .touchDown)
-        previousButton.addTarget(self, action: #selector(skipBackward), for: .touchUpInside)
-        previousButton.translatesAutoresizingMaskIntoConstraints = false
-        
-        nextButton.tintColor = playbackButtonsColor
-        nextButton.addTarget(self, action: #selector(animateButtonDown(_:)), for: .touchDown)
-        nextButton.addTarget(self, action: #selector(skipForward), for: .touchUpInside)
-        if playbackType==1{
-            nextButton.isHidden = true
-        }
-        nextButton.translatesAutoresizingMaskIntoConstraints = false
-        
-        closeButton.tintColor = cS.surface.uiColorLight()
-        closeButton.addTarget(self, action: #selector(dismissView), for: .touchUpInside)
-        closeButton.translatesAutoresizingMaskIntoConstraints = false
-        controlsContainerView.addSubview(closeButton)
-        
-        NSLayoutConstraint.activate([
-            closeButton.topAnchor.constraint(equalTo: controlsContainerView.topAnchor, constant: 20),
-            closeButton.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor, constant: 20)
-        ])
-
-        controlsContainerView.addSubview(previousButton)
         controlsContainerView.addSubview(playButton)
-        controlsContainerView.addSubview(nextButton)
 
         NSLayoutConstraint.activate([
             playButton.centerXAnchor.constraint(equalTo: controlsContainerView.centerXAnchor),
             playButton.centerYAnchor.constraint(equalTo: controlsContainerView.centerYAnchor),
-            
-            previousButton.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
-            previousButton.trailingAnchor.constraint(equalTo: playButton.leadingAnchor, constant: -55),
-            
-            nextButton.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
-            nextButton.leadingAnchor.constraint(equalTo: playButton.trailingAnchor, constant: 55)
         ])
     }
     
     //MARK: setup player
     
     private func setupSingleItemPlayback(){
-        contentImageView.kf.setImage(
-            with: URL(string: "https://simp6.jpg5.su/images3/RDT_20240109_13312442616131863919202839b34b97d1c7df5c9.md.webp"),
-            options: [
-                .cacheOriginalImage,
-                .transition(.fade(0.2)),
-                .scaleFactor(1.0),
-//                .requestModifier(modifier),
-            ],
-            completionHandler: { result in
-                if case .failure(let error) = result {
-                    Native().sl.w(msg: "Image Loading Failed: \(error.localizedDescription)")
-                }
-            }
-        )
-        contentImageView.contentMode = .scaleAspectFit
-        contentImageView.clipsToBounds = true
-        contentImageView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(contentImageView)
+        dataSource = nil
+        guard let sequenceState = state else {return}
+        let item = sequenceState.itemsStore[sequenceState.pointer]
         
-        NSLayoutConstraint.activate([
-            contentImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            contentImageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            contentImageView.topAnchor.constraint(equalTo: view.topAnchor),
-            contentImageView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
+        switch item.contentType{
+        case .photo:
+            setupImage()
+        case .video:
+            setupVideo()
+        default:
+            Native().sl.s(msg: "unknown type for item: \(item.name)")
+        }
+        
+        setupControlViews()
+        setupControlsHide()
+        
+        func setupImage(){
+            contentImageView.kf.setImage(
+                with: URL(string: item.resolvedContentLink),
+                options: [
+                    .cacheOriginalImage,
+                    .transition(.fade(0.2)),
+                    .scaleFactor(1.0),
+                    //                .requestModifier(modifier),
+                ],
+                completionHandler: { result in
+                    if case .failure(let error) = result {
+                        Native().sl.w(msg: "Image Loading Failed: \(error.localizedDescription)")
+                    }
+                }
+            )
+            contentImageView.contentMode = .scaleAspectFit
+            contentImageView.clipsToBounds = true
+            contentImageView.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(contentImageView)
+            
+            NSLayoutConstraint.activate([
+                contentImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                contentImageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                contentImageView.topAnchor.constraint(equalTo: view.topAnchor),
+                contentImageView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            ])
+        }
+        
+        func setupVideo(){
+            guard let url = URL(string: item.resolvedContentLink) else {
+                Native().sl.s(msg: "Invalid URL: \(item.resolvedContentLink)")
+                return
+            }
+            
+//            Native().sl.i(msg: "setting up player for item: \(item.name)")
+
+            // Set AVAsset HTTP headers
+            let assetOptions: [String: Any] = [
+                "AVURLAssetHTTPHeaderFieldsKey": item.headers
+            ]
+
+            // Create an AVURLAsset with custom headers
+            let asset = AVURLAsset(url: url, options: assetOptions)
+            let playerItem = AVPlayerItem(asset: asset)
+            player = AVPlayer(playerItem: playerItem)
+            
+            playerLayer = AVPlayerLayer(player: player)
+            playerLayer?.videoGravity = .resizeAspect
+
+            if let playerLayer = playerLayer {
+                view.layer.addSublayer(playerLayer)
+            }
+
+            addObservers()
+            playerItem.addObserver(self, forKeyPath: "status", options: [.new, .initial], context: nil)
+            
+            player?.play()
+        }
     }
     
     private func setupPlayer() {
@@ -537,18 +566,21 @@ extension PlayerViewController{
     
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
         if keyPath == "timeControlStatus" {
-//            if let player = object as? AVPlayer {
-//                switch player.timeControlStatus {
-//                case .playing:
+            if let player = object as? AVPlayer {
+                switch player.timeControlStatus {
+                case .playing:
+                    deactivateLoadingIndicator()
 //                    Native().sl.fr(msg: "▶️ Player")
-//                case .paused:
+                case .paused:
+                    deactivateLoadingIndicator()
 //                    Native().sl.fr(msg: "⏸️ Player")
-//                case .waitingToPlayAtSpecifiedRate:
+                case .waitingToPlayAtSpecifiedRate:
+                    setupLoadingIndicatorActivation()
 //                    Native().sl.fr(msg: "⏳ Player")
-//                @unknown default:
-//                    Native().sl.fr(msg: "❓ Player")
-//                }
-//            }
+                @unknown default:
+                    Native().sl.fr(msg: "❓ Player")
+                }
+            }
         } else
         if keyPath == "status", let playerItem = object as? AVPlayerItem {
             switch playerItem.status {
@@ -676,7 +708,7 @@ extension PlayerViewController{
 
     @objc private func skipBackward() {
         setupControlsHide()
-        animateButtonUp(previousButton)
+//        animateButtonUp(previousButton)
         
         player?.seek(to: CMTime(seconds: 0, preferredTimescale: 600))
         progressBar.setProgress(0.0, animated: false)
@@ -686,7 +718,7 @@ extension PlayerViewController{
 
     @objc private func skipForward() {
         setupControlsHide()
-        animateButtonUp(nextButton)
+//        animateButtonUp(nextButton)
         advanceToNextItem()
 //        Native().sl.w(obj: queuePlayer.items())
     }
@@ -743,9 +775,6 @@ extension PlayerViewController{
             queuePlayer.advanceToNextItem()
             playerDidAdvanceToNextItem()
         }
-        if queuePlayer.items().count == 1 {
-            nextButton.isHidden = true
-        }
     }
 
     private func setupProgressSetRelease(){
@@ -786,6 +815,39 @@ extension PlayerViewController{
             }, completion: { _ in
                 self.controlsHidden = true
             })
+        }
+    }
+    
+    private func setupLoadingIndicatorActivation(){
+        guard loadingIndicator.isHidden else {return}
+        
+        playerLoadingIndicationTask.cancel()
+        playerLoadingIndicationTask = Task{
+            try await Task.sleep(for: .seconds(4))
+            if !controlsHidden{
+                UIView.animate(withDuration: 0.15, animations: {
+                    self.playButton.alpha = 0
+                }, completion: { _ in
+                    self.loadingIndicator.startAnimating()
+                })
+            } else {
+                self.loadingIndicator.startAnimating()
+                self.playButton.alpha = 0
+            }
+        }
+    }
+    
+    private func deactivateLoadingIndicator(){
+        playerLoadingIndicationTask.cancel()
+        if !controlsHidden{
+            UIView.animate(withDuration: 0.15, animations: {
+                self.playButton.alpha = 1
+            }, completion: { _ in
+                self.loadingIndicator.stopAnimating()
+            })
+        } else {
+            self.loadingIndicator.stopAnimating()
+            self.playButton.alpha = 1
         }
     }
     

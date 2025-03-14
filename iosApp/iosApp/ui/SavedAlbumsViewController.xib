@@ -11,6 +11,7 @@
     <objects>
         <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="SavedAlbumsViewController" customModule="iosApp" customModuleProvider="target">
             <connections>
+                <outlet property="itemButton" destination="ERW-Vt-6a7" id="T5I-99-qEV"/>
                 <outlet property="label" destination="KWH-zX-lBS" id="apz-dK-oGV"/>
                 <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
             </connections>

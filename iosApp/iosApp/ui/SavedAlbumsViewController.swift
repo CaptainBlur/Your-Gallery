@@ -13,6 +13,7 @@ import Kingfisher
 class SavedAlbumsViewController: UIViewController {
 
     @IBOutlet weak private var label: UILabel!
+    @IBOutlet weak var itemButton: UIButton!
     
     var startLink: String = String()
     private let parserActor = ParserActor()
@@ -27,8 +28,20 @@ class SavedAlbumsViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(handleSharedURL(_:)), name: .sharedURLReceived, object: nil)
          
         checkAvailableLink()
-//        present(MediaContainerViewController(dp.testMediaContainer), animated: true)
+        
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(longPress))
+        self.itemButton.addGestureRecognizer(longPress)
+        
     }
+
+    @objc func longPress(gesture: UILongPressGestureRecognizer) {
+        if gesture.state == UIGestureRecognizer.State.began {
+            startLink =
+            "https://bunkr.cr/f/Ly3zQuAQWw5CK" //ritori
+            checkAvailableLink()
+        }
+    }
+    
     @IBAction func labelButtonAction(_ sender: Any) {
         checkAvailableLink()
     }
@@ -42,7 +55,8 @@ class SavedAlbumsViewController: UIViewController {
 //            "https://bunkr.site/f/bsXOm7h9zGvSC" //diana
 //        "https://cdn-fries.bunkr.ru/2023-08-08_at_21-40_id_545336713568854016-YQZx7ej4.mp4" //shawty
 //        "https://bunkr.cr/f/Mrf66nQAxSx1T" //kait
-        "https://bunkr.cr/f/RYvrs1I7HCCyi" //kait 2
+//        "https://bunkr.cr/f/RYvrs1I7HCCyi" //kait 2
+        "https://bunkr.cr/f/iEIeeuncrgQ4G" //ritori
         checkAvailableLink()
     }
     
