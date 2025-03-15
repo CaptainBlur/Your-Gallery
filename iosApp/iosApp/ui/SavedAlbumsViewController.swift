@@ -68,9 +68,10 @@ class SavedAlbumsViewController: UIViewController {
 //        "https://bunkr.fi/a/L7Drn4GL" //girl
 //        "https://bunkr.si/a/XOGKz13p" //hastya cam
         
-        "https://bunkr.cr/a/Uz0c4pOi" // kiko w photos
+//        "https://bunkr.cr/a/Uz0c4pOi" // kiko w photos
 //        "https://bunkr.cr/a/ZzBMUGJU" //kait only photos
-//        "https://bunkr.cr/a/FVE7ci9d" //ritori photos
+//        "https://bunkr.cr/a/FVE7ci9d" //ritori photos lot
+        "https://bunkr.cr/a/6vgyxAUr" //ritori videos
         checkAvailableLink()
     }
 }

@@ -150,9 +150,8 @@ class PlayerViewController: UIPageViewController {
 
     private func setupPlayback(){
         switch playbackType{
-        case 1:
-            setupSingleItemPlayback()
-        case 2:
+        case 1, 2:
+//            setupTestImage()
             setupSingleItemPlayback()
         default:
             return
@@ -210,11 +209,15 @@ extension PlayerViewController {
     
     private func setupControlViews(){
         guard let cS = colorScheme, let sequenceState = state else {return}
+        controlsHidden = sequenceState.isCurrentPhoto ? true : false
         
         //Controls container
-        controlsContainerView.alpha = sequenceState.isCurrentPhoto ? 0 : 1
+        //the hell happens with gesture recognizers when it's hidden,
+        //only god knows
+        //try not to add this view and soon you find out, the scroll is still broken
+        //feels like apple's just breaking my balls
+        controlsContainerView.alpha = 1
         controlsContainerView.translatesAutoresizingMaskIntoConstraints = false
-        controlsContainerView.layer.zPosition = 10
         view.addSubview(controlsContainerView)
         
         NSLayoutConstraint.activate([
@@ -233,6 +236,7 @@ extension PlayerViewController {
         closeButton.tintColor = cS.surface.uiColorLight()
         closeButton.addTarget(self, action: #selector(dismissView), for: .touchUpInside)
         closeButton.translatesAutoresizingMaskIntoConstraints = false
+        closeButton.alpha = sequenceState.isCurrentPhoto ? 0 : 1
         controlsContainerView.addSubview(closeButton)
         
         NSLayoutConstraint.activate([
@@ -372,7 +376,7 @@ extension PlayerViewController {
         }
         
         setupControlViews()
-//        setupControlsHide()
+        setupControlsHide()
         
     }
     
@@ -698,18 +702,22 @@ extension PlayerViewController{
     }
     
     @objc private func handleTapGesture() {
-        let isHidden = controlsContainerView.alpha == 0
-
-        UIView.animate(withDuration: 0.25, animations: {
-            self.controlsContainerView.alpha = isHidden ? 1 : 0
-            self.gradientView.alpha = isHidden ? 1 : 0
-            self.progressBar.alpha = isHidden ? 1 : 0
-        }, completion: {_ in
-            if isHidden {
-                self.controlsHidden = false
-                self.setupControlsHide()
+        UIView.animate(withDuration: 0.25, animations: { [self] in
+            closeButton.alpha = controlsHidden ? 1 : 0
+            gradientView.alpha = controlsHidden ? 1 : 0
+            progressBar.alpha = controlsHidden ? 1 : 0
+            timeCounterLabel.alpha = controlsHidden ? 1 : 0
+            if loadingIndicator.isAnimating{
+                loadingIndicator.alpha = controlsHidden ? 1 : 0
+            }else{
+                playButton.alpha = controlsHidden ? 1 : 0
+            }
+        }, completion: { [self]_ in
+            if controlsHidden {
+                controlsHidden = false
+                setupControlsHide()
             } else {
-                self.controlsHidden = true
+                controlsHidden = true
             }
         })
     }
@@ -720,10 +728,13 @@ extension PlayerViewController{
         playerControlsHideTask.cancel()
         playerControlsHideTask = Task{
             try await Task.sleep(for:.seconds(5))
-            UIView.animate(withDuration: 0.25, animations: {
-                self.controlsContainerView.alpha = 0
-                self.gradientView.alpha = 0
-                self.progressBar.alpha = 0
+            UIView.animate(withDuration: 0.25, animations: { [self] in
+                closeButton.alpha = 0
+                playButton.alpha = 0
+                loadingIndicator.alpha = 0
+                gradientView.alpha = 0
+                progressBar.alpha = 0
+                timeCounterLabel.alpha = 0
             }, completion: { _ in
                 self.controlsHidden = true
             })
@@ -740,11 +751,11 @@ extension PlayerViewController{
                 UIView.animate(withDuration: 0.15, animations: {
                     self.playButton.alpha = 0
                 }, completion: { _ in
+                    self.loadingIndicator.alpha = 1
                     self.loadingIndicator.startAnimating()
                 })
             } else {
                 self.loadingIndicator.startAnimating()
-                self.playButton.alpha = 0
             }
         }
     }
@@ -755,11 +766,11 @@ extension PlayerViewController{
             UIView.animate(withDuration: 0.15, animations: {
                 self.playButton.alpha = 1
             }, completion: { _ in
+                self.loadingIndicator.alpha = 0
                 self.loadingIndicator.stopAnimating()
             })
         } else {
             self.loadingIndicator.stopAnimating()
-            self.playButton.alpha = 1
         }
     }
     
@@ -785,7 +796,6 @@ extension PlayerViewController{
         }
     }
 
-    // Animation function (bounce back)
     @objc func animateButtonUp(_ sender: UIButton) {
         UIView.animate(withDuration: 0.2,
                        delay: 0,
@@ -870,6 +880,11 @@ extension PlayerViewController: UIPageViewControllerDataSource {
               let newState = state[container, false]
         else {return nil}
         return newState[container]
+//        guard let playerVC = viewController as? PlayerViewController,
+//              let state = playerVC.state,
+//              let item = playerVC.item
+//        else {return nil}
+//        return state[item]
     }
 
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
@@ -879,5 +894,11 @@ extension PlayerViewController: UIPageViewControllerDataSource {
               let newState = state[container, true]
         else {return nil}
         return newState[container]
+        //        guard let playerVC = viewController as? PlayerViewController,
+        //              let state = playerVC.state,
+        //              let item = playerVC.item
+        //        else {return nil}
+        //        return state[item]
     }
+    
 }
