@@ -110,8 +110,7 @@ class PlayerViewController: UIPageViewController {
         dataSource = self
         
         setPagerVC()
-        setupTestImage()
-//        setupPlayback()
+        setupPlayback()
     }
 
     override func viewDidLayoutSubviews() {
@@ -152,10 +151,8 @@ class PlayerViewController: UIPageViewController {
     private func setupPlayback(){
         switch playbackType{
         case 1:
-//            dataSource = nil
             setupSingleItemPlayback()
         case 2:
-            dataSource = self
             setupSingleItemPlayback()
         default:
             return
@@ -217,6 +214,7 @@ extension PlayerViewController {
         //Controls container
         controlsContainerView.alpha = sequenceState.isCurrentPhoto ? 0 : 1
         controlsContainerView.translatesAutoresizingMaskIntoConstraints = false
+        controlsContainerView.layer.zPosition = 10
         view.addSubview(controlsContainerView)
         
         NSLayoutConstraint.activate([
@@ -374,7 +372,7 @@ extension PlayerViewController {
         }
         
         setupControlViews()
-        setupControlsHide()
+//        setupControlsHide()
         
     }
     
@@ -437,36 +435,6 @@ extension PlayerViewController {
         player?.play()
     }
     
-    private func setupPlayer() {
-        guard let url = URL(string: item!.resolvedContentLink), (item != nil) else {
-            Native().sl.s(msg: "Invalid URL: \(item!.resolvedContentLink)")
-            return
-        }
-        
-        Native().sl.i(msg: "setting up player for item: \(item!.name)")
-
-        // Set AVAsset HTTP headers
-        let assetOptions: [String: Any] = [
-            "AVURLAssetHTTPHeaderFieldsKey": item!.headers
-        ]
-
-        // Create an AVURLAsset with custom headers
-        let asset = AVURLAsset(url: url, options: assetOptions)
-        let playerItem = AVPlayerItem(asset: asset)
-        player = AVPlayer(playerItem: playerItem)
-        
-        playerLayer = AVPlayerLayer(player: player)
-        playerLayer?.videoGravity = .resizeAspect
-
-        if let playerLayer = playerLayer {
-            view.layer.addSublayer(playerLayer)
-        }
-
-        addObservers()
-        playerItem.addObserver(self, forKeyPath: "status", options: [.new, .initial], context: nil)
-        
-        player?.play()
-    }
 }
 
 extension PlayerViewController{
@@ -878,10 +846,10 @@ extension PlayerViewController {
             self.itemsStore = container.mediaItems as! [MediaItem]
         }
         
-        subscript(currentState: SequenceState, container: MediaContainer, directionUp: Bool)-> SequenceState?{
-            if (currentState.pointer==0 && !directionUp) || (currentState.pointer==currentState.count && directionUp){ return nil}
+        subscript(container: MediaContainer, directionUp: Bool)-> SequenceState?{
+            if (self.pointer==0 && !directionUp) || (self.pointer==self.count && directionUp){ return nil}
             
-            return SequenceState(count: currentState.count, pointer: currentState.pointer + (directionUp ? 1 : -1), itemsStore: container.mediaItems as! [MediaItem])
+            return SequenceState(count: self.count, pointer: self.pointer + (directionUp ? 1 : -1), itemsStore: container.mediaItems as! [MediaItem])
         }
         
         subscript(_ item: MediaItem)-> PlayerViewController{
@@ -898,16 +866,18 @@ extension PlayerViewController: UIPageViewControllerDataSource {
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
         guard let playerVC = viewController as? PlayerViewController,
               let state = playerVC.state,
-              let item = playerVC.item
+              let container = playerVC.container,
+              let newState = state[container, false]
         else {return nil}
-        return state[item]
+        return newState[container]
     }
 
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
         guard let playerVC = viewController as? PlayerViewController,
               let state = playerVC.state,
-              let item = playerVC.item
+              let container = playerVC.container,
+              let newState = state[container, true]
         else {return nil}
-        return state[item]
+        return newState[container]
     }
 }
