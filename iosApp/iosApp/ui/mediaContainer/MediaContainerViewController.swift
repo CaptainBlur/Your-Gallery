@@ -13,6 +13,7 @@ import Kingfisher
 class MediaContainerViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource{
     private let mediaContainer: MediaContainer
     private let colorScheme: MediaTypeColorScheme
+    private let playersCache = PlayerVCCache()
     
     private var collectionView: UICollectionView!
     private var isCollectionViewSetup = false
@@ -139,7 +140,7 @@ extension MediaContainerViewController {
         cell.tapAction = { [weak self] in
             guard self != nil else { return }
             self!.mediaContainer.itemPointer = Int32(index)
-            let playerController = PlayerViewController(self!.mediaContainer)
+            let playerController = PlayerViewController(self!.mediaContainer, controllersCache: self!.playersCache)
             playerController.onDismissAction = {[weak self] lastLink in
                 self?.findAndMarkLastPlayedItem(link: lastLink)
             }
