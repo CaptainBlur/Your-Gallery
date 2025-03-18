@@ -17,13 +17,16 @@ class MediaContainerViewController: UIViewController, UICollectionViewDelegate, 
     
     private var collectionView: UICollectionView!
     private var isCollectionViewSetup = false
-    private var lastPlayedItemIndexPath: IndexPath? = nil
+    private var lastPlayedItem = LastPlayedItem()
     
     init(_ mc: MediaContainer){
         mediaContainer = mc
         colorScheme = mc.containerType.colorScheme
-        
         super.init(nibName: "MediaContainerViewController", bundle: nil)
+        
+        lastPlayedItem.triggerAutoscroll = { [weak self] in
+            self?.findAndMarkLastPlayedItem()
+        }
     }
     
     required init?(coder: NSCoder) {
@@ -140,10 +143,8 @@ extension MediaContainerViewController {
         cell.tapAction = { [weak self] in
             guard self != nil else { return }
             self!.mediaContainer.itemPointer = Int32(index)
-            let playerController = PlayerViewController(self!.mediaContainer, controllersCache: self!.playersCache)
-            playerController.onDismissAction = {[weak self] lastLink in
-                self?.findAndMarkLastPlayedItem(link: lastLink)
-            }
+            let playerController = PlayerViewController(self!.mediaContainer, controllersCache: self!.playersCache, lastPlayedItem: self!.lastPlayedItem)
+            
             self!.present(playerController, animated: true)
         }
     }
@@ -176,23 +177,34 @@ extension MediaContainerViewController {
 }
 
 extension MediaContainerViewController: UIScrollViewDelegate{
-    private func findAndMarkLastPlayedItem(link: String){
-        Task{
-            let items = mediaContainer.mediaItems
-            let item = items.filter{ item in
-                (item as! MediaItem).resolvedContentLink == link
-            }[0] as! MediaItem
-            
-            lastPlayedItemIndexPath = IndexPath(item: Int(item.index), section: 0)
-            collectionView.scrollToItem(at: lastPlayedItemIndexPath!, at: .centeredVertically, animated: true)
+    private func findAndMarkLastPlayedItem(){
+        guard self.lastPlayedItem.index != -1 else {return}
+        let lastPlayedItemIndexPath = IndexPath(item: lastPlayedItem.index, section: 0)
+        let cell = collectionView.cellForItem(at: lastPlayedItemIndexPath)
+        if collectionView.visibleCells.contains(where: {
+            $0 == cell
+        }){
+            (cell as! MediaContainerCollectionViewCell).animateHighlight()
+        }
+        else{
+            Task{
+                collectionView.scrollToItem(at: lastPlayedItemIndexPath, at: .centeredVertically, animated: true)
+            }
         }
     }
     
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView){
-        guard let indexPath = lastPlayedItemIndexPath else {return}
-        let cell = collectionView.cellForItem(at: indexPath)
+        guard lastPlayedItem.index != -1 else {return}
+        let lastPlayedItemIndexPath = IndexPath(item: lastPlayedItem.index, section: 0)
+        let cell = collectionView.cellForItem(at: lastPlayedItemIndexPath)
         (cell as? MediaContainerCollectionViewCell)?.animateHighlight()
-        lastPlayedItemIndexPath = nil
+        lastPlayedItem.index = -1
     }
 
+    class LastPlayedItem{
+        var index: Int = -1
+        var triggerAutoscroll: ()-> Void = {}
+    }
 }
+
+

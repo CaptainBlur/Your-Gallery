@@ -18,6 +18,7 @@ class SavedAlbumsViewController: UIViewController {
     var startLink: String = String()
     private let parserActor = ParserActor()
     private let colorScheme = MediaContainerType.bunkr.colorScheme
+    private let playerCache = PlayerVCCache()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -83,7 +84,7 @@ extension SavedAlbumsViewController{
         Task{
             await parserActor.parseData(url: startLink){[weak self] result in
                 if let item = result as? MediaItem{
-                    self?.present(PlayerViewController(item), animated: true)
+                    self?.present(PlayerViewController(item, controllersCache: self?.playerCache ?? PlayerVCCache()), animated: true)
                 }
                 else if let container = result as? MediaContainer{
                     Native().sl.i(msg: "entering media container")

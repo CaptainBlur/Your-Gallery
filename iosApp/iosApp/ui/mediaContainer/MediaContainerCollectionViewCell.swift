@@ -41,10 +41,10 @@ class MediaContainerCollectionViewCell: UICollectionViewCell {
     }
     
     func animateHighlight(){
-        UIView.animate(withDuration: 0.35, animations: { [weak self] in
+        UIView.animate(withDuration: 0.2, animations: { [weak self] in
             self?.contentView.transform = CGAffineTransform(scaleX: 1.05, y: 1.05)
         }, completion: { [weak self] _ in
-            UIView.animate(withDuration: 0.4, animations: {
+            UIView.animate(withDuration: 0.25, animations: {
                 self?.contentView.transform = CGAffineTransform.identity // Restore size
             })
         })

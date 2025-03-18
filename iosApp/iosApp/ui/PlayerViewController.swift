@@ -14,7 +14,6 @@ class PlayerViewController: UIPageViewController {
     //State is usually one-time assigned property,
     //but it can be reassibgned in case of moving through video player subsequence
     private var state: SequenceState?
-    private var selfCache: PlayerVCCache
 
     private var player: AVPlayer?
     private var playerLayer: AVPlayerLayer?
@@ -41,6 +40,7 @@ class PlayerViewController: UIPageViewController {
     private var playerControlsHideTask: Task<Void, Error> = Task(){}
     private var playerLoadingIndicationTask: Task<Void, Error> = Task(){}
     private var controlsHidden = false
+    private var timeCounterAnimated = false
     
     /*
      0 for setting up container;
@@ -51,19 +51,19 @@ class PlayerViewController: UIPageViewController {
     private let item: MediaItem?
     private let container: MediaContainer?
     private let colorScheme: MediaTypeColorScheme?
-    var onDismissAction: (String)->Void = {_ in }
+    var onPlaybackControllerDismiss: (Int)->Void = {_ in }
+    var onStartupControllerDismiss: ()-> Void = {}
     
     /*
      For setting up media display sequence, without actual displaying;
      it uses Container to create SequenceState
      */
-    init(_ container: MediaContainer, controllersCache selfCache: PlayerVCCache = PlayerVCCache()){
+    init(_ container: MediaContainer, controllersCache selfCache: PlayerVCCache = PlayerVCCache(), lastPlayedItem: MediaContainerViewController.LastPlayedItem){
         playbackType = 0
         self.container = container
         self.item = nil
         self.colorScheme = container.containerType.colorScheme
-        self.state = SequenceState(container: container)
-        self.selfCache = selfCache
+        self.state = SequenceState(container: container, selfCache: selfCache, lastPlayedItem: lastPlayedItem)
         super.init(transitionStyle: .scroll, navigationOrientation: .horizontal)
     }
 
@@ -74,12 +74,11 @@ class PlayerViewController: UIPageViewController {
         self.item = item
         self.colorScheme = item.containerType.colorScheme
         self.container = nil
-        self.state = SequenceState(item: item)
-        self.selfCache = selfCache
+        self.state = SequenceState(item: item, selfCache: selfCache)
         super.init(transitionStyle: .scroll, navigationOrientation: .horizontal)
     }
     
-    private init(state: SequenceState, item: MediaItem?, container: MediaContainer?, selfCache: PlayerVCCache){
+    private init(state: SequenceState, item: MediaItem?, container: MediaContainer?){
         self.state = state
         self.item = item
         self.container = container
@@ -95,7 +94,6 @@ class PlayerViewController: UIPageViewController {
         } else {
             fatalError("Provide either an item or a container")
         }
-        self.selfCache = selfCache
         super.init(transitionStyle: .scroll, navigationOrientation: .horizontal)
     }
 
@@ -128,13 +126,16 @@ class PlayerViewController: UIPageViewController {
     }
 
     override func viewDidDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        player?.play()
-        togglePlayPause()
+        super.viewDidDisappear(animated)
+        togglePlayPause(true)
         
-        //TODO: figure out list autoscroll on exit
-//        guard playbackType==0, let link = (self.player?.currentItem?.asset as? AVURLAsset)?.url.absoluteString else { return }
-//        self.onDismissAction(link)
+        if playbackType == 0{
+            state?.lastPlayedItem?.triggerAutoscroll()
+        }
+        
+        if playbackType==2, let state = self.state{
+            state.lastPlayedItem?.index = state.pointer
+        }
     }
     
     override func viewWillAppear(_ animated: Bool){
@@ -146,14 +147,14 @@ class PlayerViewController: UIPageViewController {
     }
     override func viewDidAppear(_ animated: Bool){
         super.viewDidAppear(animated)
-        player?.pause()
-        togglePlayPause()
+//        Native().sl.i(obj: state?.pointer)
+        togglePlayPause(false)
     }
         
     private func setPagerVC() {
         guard let sequenceState = state, playbackType == 0 else { return }
 
-        let produced: PlayerViewController = item != nil ? sequenceState[item!, selfCache] : sequenceState[container!, selfCache]
+        let produced: PlayerViewController = item != nil ? sequenceState[item!] : sequenceState[container!]
 
         if let currentVC = viewControllers?.first, currentVC == produced {
             Native().sl.w(msg: "setViewControllers skipped: Already on this page")
@@ -260,7 +261,7 @@ extension PlayerViewController {
             closeButton.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor, constant: 20)
         ])
         
-        //loading indicator
+        //Loading indicator
         loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
         loadingIndicator.color = cS.surface.uiColorLight()
         controlsContainerView.addSubview(loadingIndicator)
@@ -365,7 +366,7 @@ extension PlayerViewController {
         
         playButton.tintColor = playbackButtonsColor
         playButton.addTarget(self, action: #selector(animateButtonDown(_:)), for: .touchDown)
-        playButton.addTarget(self, action: #selector(togglePlayPause), for: [.touchUpInside, .touchUpOutside])
+        playButton.addTarget(self, action: #selector(togglePlayPauseAction), for: [.touchUpInside, .touchUpOutside])
         playButton.translatesAutoresizingMaskIntoConstraints = false
         
         controlsContainerView.addSubview(playButton)
@@ -379,8 +380,7 @@ extension PlayerViewController {
     //MARK: setup content display
     
     private func setupSingleItemPlayback(){
-        guard let sequenceState = state else {return}
-        let item = sequenceState.itemsStore[sequenceState.pointer]
+        guard let sequenceState = state, let item = sequenceState.itemsStore[sequenceState.pointer] else {return}
         
         switch item.contentType{
         case .photo:
@@ -467,13 +467,6 @@ extension PlayerViewController{
 
         // Track video completion
         NotificationCenter.default.addObserver(self, selector: #selector(playerDidFinishPlaying), name: .AVPlayerItemDidPlayToEndTime, object: player?.currentItem)
-        
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(playerDidAdvanceToNextItem),
-            name: .AVPlayerItemDidPlayToEndTime,
-            object: nil
-        )
 
         // Track playback progress
         timeObserverToken = player?.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.01, preferredTimescale: CMTimeScale(NSEC_PER_SEC)), queue: DispatchQueue.main) {[weak self] time in
@@ -517,30 +510,24 @@ extension PlayerViewController{
         if keyPath == "status", let playerItem = object as? AVPlayerItem {
             switch playerItem.status {
             case .readyToPlay:
-                Native().sl.fr(msg: "Media successfully resolved")
+                Native().sl.fr(msg: "media successfully resolved")
                 animateTimeCounter()
-                player?.play()
             case .failed:
-                Native().sl.w(msg: "Failed to load media: \(playerItem.error?.localizedDescription ?? "Unknown error")")
+                Native().sl.w(msg: "failed to load media: \(playerItem.error?.localizedDescription ?? "Unknown error")")
                 player?.pause()
                 playButton.isHidden = true
                 unablePlayImage.isHidden = false
+                setupLoadingIndicatorActivation()
                 resetTimeCounter()
+                
+                guard let state = self.state else {return}
+                state.selfCache.clearCurrent(index: state.pointer)
             case .unknown:
-                Native().sl.fr(msg: "PlayerItem status unknown")
+                Native().sl.fr(msg: "playerItem status unknown")
             @unknown default:
                 Native().sl.w(msg: "Unhandled AVPlayerItem status")
             }
         }
-    }
-    
-    private func observeNewItem(_ item: AVPlayerItem?) {
-        if let currentItem = currentItem {
-            currentItem.removeObserver(self, forKeyPath: "status")
-        }
-        
-        currentItem = item
-        currentItem?.addObserver(self, forKeyPath: "status", options: [.new, .initial], context: nil)
     }
 
     @objc private func handleProgressSeekGesture(_ gesture: UIPanGestureRecognizer) {
@@ -613,7 +600,7 @@ extension PlayerViewController{
     
     //MARK: touch gestures and animations
     
-    @objc private func togglePlayPause() {
+    private func togglePlayPause(_ pause: Bool) {
         animateButtonUp(playButton)
         
         guard let player = player else { return }
@@ -621,38 +608,25 @@ extension PlayerViewController{
         let playIcon = UIImage(systemName: "play.fill", withConfiguration: playConfig)
         let pauseIcon = UIImage(systemName: "pause.fill", withConfiguration: playConfig)
 
-        if player.timeControlStatus == .playing {
+        if pause {
             player.pause()
             playButton.setImage(playIcon, for: .normal)
             playButton.setImage(playIcon, for: .highlighted)
         } else {
+            if progressBar.progress == 0.0{
+                player.seek(to: CMTime(seconds: 0, preferredTimescale: 600))
+            }
             player.play()
             playButton.setImage(pauseIcon, for: .normal)
             playButton.setImage(pauseIcon, for: .highlighted)
         }
         setupControlsHide()
     }
-
-    @objc private func playerDidAdvanceToNextItem() {
-        guard let queuePlayer = player as? AVQueuePlayer else { return }
-        observeNewItem(queuePlayer.currentItem)
-    }
-
-    @objc private func skipBackward() {
-        setupControlsHide()
-//        animateButtonUp(previousButton)
+    
+    @objc private func togglePlayPauseAction() {
+        guard let player = player else { return }
         
-        player?.seek(to: CMTime(seconds: 0, preferredTimescale: 600))
-        progressBar.setProgress(0.0, animated: false)
-        blockPlayerProgressSet = true
-        setupProgressSetRelease()
-    }
-
-    @objc private func skipForward() {
-        setupControlsHide()
-//        animateButtonUp(nextButton)
-        advanceToNextItem()
-//        Native().sl.w(obj: queuePlayer.items())
+        player.timeControlStatus == .playing ? togglePlayPause(true) : togglePlayPause(false)
     }
     
     @objc private func dismissView() {
@@ -667,6 +641,7 @@ extension PlayerViewController{
     }
     
     private func animateTimeCounter() {
+        timeCounterAnimated = true
         UIView.animate(withDuration: 0.3, delay: 0.0, options: .curveEaseOut, animations: {
             self.timeCounterLabel.alpha = 1
             self.timeCounterLabel.transform = CGAffineTransform(translationX: 0, y: 25)
@@ -681,32 +656,18 @@ extension PlayerViewController{
 
     
     @objc private func playerDidFinishPlaying() {
-        if (playbackType==1){
-            dismiss(animated: true)
-        } else {
-            advanceToNextItem()
-        }
+        resetPlayerPlaybackState()
+    }
+    
+    private func resetPlayerPlaybackState(){
+        progressBar.setProgress(0.0, animated: false)
+        timeCounterLabel.text = "00:00"
+        
+        togglePlayPause(true)
     }
     
     private func advanceToNextItem(){
-        guard let queuePlayer = player as? AVQueuePlayer else { return }
         
-        player?.seek(to: CMTime(seconds: 0, preferredTimescale: 600))
-        player?.play()
-        progressBar.setProgress(0.0, animated: false)
-        timeCounterLabel.text = "--:--"
-        blockPlayerProgressSet = true
-        setupProgressSetRelease()
-        
-        playButton.isHidden = false
-        unablePlayImage.isHidden = true
-        
-        if queuePlayer.items().count > 1{
-            guard let url = (queuePlayer.items()[1].asset as? AVURLAsset)?.url else {return}
-            Native().sl.i(msg: "Advancing to next item: \(String(describing: url))")
-            queuePlayer.advanceToNextItem()
-            playerDidAdvanceToNextItem()
-        }
     }
 
     private func setupProgressSetRelease(){
@@ -722,7 +683,9 @@ extension PlayerViewController{
             closeButton.alpha = controlsHidden ? 1 : 0
             gradientView.alpha = controlsHidden ? 1 : 0
             progressBar.alpha = controlsHidden ? 1 : 0
-            timeCounterLabel.alpha = controlsHidden ? 1 : 0
+            if timeCounterAnimated{
+                timeCounterLabel.alpha = controlsHidden ? 1 : 0
+            }
             if loadingIndicator.isAnimating{
                 loadingIndicator.alpha = controlsHidden ? 1 : 0
             }else{
@@ -744,7 +707,9 @@ extension PlayerViewController{
         loadingIndicator.alpha = 1
         gradientView.alpha = 1
         progressBar.alpha = 1
-        timeCounterLabel.alpha = 1
+        if timeCounterAnimated{
+            timeCounterLabel.alpha = 1
+        }
         
         controlsHidden = false
     }
@@ -761,7 +726,9 @@ extension PlayerViewController{
                 loadingIndicator.alpha = 0
                 gradientView.alpha = 0
                 progressBar.alpha = 0
-                timeCounterLabel.alpha = 0
+                if timeCounterAnimated{
+                    timeCounterLabel.alpha = 0
+                }
             }, completion: { _ in
                 self.controlsHidden = true
             })
@@ -770,6 +737,7 @@ extension PlayerViewController{
     
     private func setupLoadingIndicatorActivation(){
         guard loadingIndicator.isHidden else {return}
+        guard unablePlayImage.isHidden else {playerLoadingIndicationTask.cancel(); return}
         
         playerLoadingIndicationTask.cancel()
         playerLoadingIndicationTask = Task{
@@ -851,98 +819,82 @@ extension PlayerViewController {
     private struct SequenceState{
         let count: Int
         let pointer: Int
+        let selfCache: PlayerVCCache
+        let lastPlayedItem: MediaContainerViewController.LastPlayedItem?
         
-        let itemsStore: [MediaItem]
-        private var controllersCache: [Int:PlayerViewController] = [:]
+        let itemsStore: [MediaItem?]
         
         //For internal use only
-        private var currentItem: MediaItem {
+        private var currentItem: MediaItem? {
             itemsStore[pointer]
         }
         var isCurrentPhoto: Bool {
-            currentItem.contentType == .photo
+            currentItem?.contentType == .photo
         }
         var isCurrentVideo: Bool {
-            currentItem.contentType == .video
+            currentItem?.contentType == .video
         }
         
-        private init(count: Int, pointer: Int, itemsStore: [MediaItem], cache controllersCache: [Int:PlayerViewController]) {
+        private init(count: Int, pointer: Int, itemsStore: [MediaItem], selfCache: PlayerVCCache, lastPlayedItem: MediaContainerViewController.LastPlayedItem?) {
             self.count = count
             self.pointer = pointer
             self.itemsStore = itemsStore
-            self.controllersCache = controllersCache
+            self.selfCache = selfCache
+            self.lastPlayedItem = lastPlayedItem
         }
         
-        init(item: MediaItem){
+        init(item: MediaItem, selfCache: PlayerVCCache){
             self.count = 1
             self.pointer = 0
             self.itemsStore = [item]
+            self.selfCache = selfCache
+            self.lastPlayedItem = nil
         }
-        init(container: MediaContainer){
+        init(container: MediaContainer, selfCache: PlayerVCCache, lastPlayedItem: MediaContainerViewController.LastPlayedItem){
             self.count = container.mediaItems.count
             self.pointer = Int(container.itemPointer)
-            self.itemsStore = container.mediaItems as! [MediaItem]
+            self.itemsStore = container.mediaItems as? [MediaItem] ?? [nil]
+            self.selfCache = selfCache
+            self.lastPlayedItem = lastPlayedItem
         }
         
         //use this subscript to replicate the state
         subscript(container: MediaContainer, directionUp: Bool)-> SequenceState?{
             if (self.pointer==0 && !directionUp) || (self.pointer==self.count-1 && directionUp){ return nil}
             
-            return SequenceState(count: self.count, pointer: self.pointer + (directionUp ? 1 : -1), itemsStore: container.mediaItems as! [MediaItem], cache: self.controllersCache)
+            return SequenceState(count: self.count, pointer: self.pointer + (directionUp ? 1 : -1), itemsStore: container.mediaItems as! [MediaItem], selfCache: self.selfCache, lastPlayedItem: self.lastPlayedItem)
         }
         
-        subscript(_ item: MediaItem, selfCache: PlayerVCCache)-> PlayerViewController{
-            var selfCacheDict = selfCache.dict
-            if selfCacheDict.keys.contains(where:{
-                $0==self.pointer
-            }){
-                return selfCacheDict[self.pointer]!
-            } else{
-                let controller = PlayerViewController(state: self, item: item, container: nil, selfCache: selfCache)
-                selfCache.dict[self.pointer] = controller
+        subscript(_ item: MediaItem)-> PlayerViewController{
+            if let cachedController = selfCache[pointer]{
+                return cachedController
+            }
+            else{
+                let controller = PlayerViewController(state: self, item: item, container: nil)
+                selfCache[(pointer, controller)]
                 return controller
             }
         }
-        subscript(_ container: MediaContainer, selfCache: PlayerVCCache)-> PlayerViewController{
-            var selfCacheDict = selfCache.dict
-            if selfCacheDict.keys.contains(where:{
-                $0==self.pointer
-            }){
-                return selfCacheDict[self.pointer]!
-            } else{
-                let controller = PlayerViewController(state: self, item: nil, container: container, selfCache: selfCache)
-                selfCache.dict[self.pointer] = controller
+        subscript(_ container: MediaContainer)-> PlayerViewController{
+            if let cachedController = selfCache[pointer]{
+                return cachedController
+            }
+            else{
+                let controller = PlayerViewController(state: self, item: nil, container: container)
+                selfCache[(pointer, controller)]
                 return controller
             }
         }
         subscript(oldController: PlayerViewController)-> PlayerViewController{
-            var selfCacheDict = oldController.selfCache.dict
-            if selfCacheDict.keys.contains(where:{
-                $0==self.pointer
-            }){
-                return selfCacheDict[self.pointer]!
-            } else{
-                let controller = PlayerViewController(state: self, item: oldController.item, container: oldController.container, selfCache: oldController.selfCache)
-                oldController.selfCache.dict[self.pointer] = controller
+            if let cachedController = selfCache[pointer]{
+                return cachedController
+            }
+            else{
+                let controller = PlayerViewController(state: self, item: oldController.item, container: oldController.container)
+                selfCache[(pointer, controller)]
                 return controller
             }
         }
-//        subscript(_ container: MediaContainer)-> PlayerViewController{
-//            PlayerViewController(state: self, item: nil, container: container, self)
-//        }
-//        subscript(_ container: MediaContainer)-> PlayerViewController{
-//            let controller = if controllersCache.keys.contains(where: {
-//                $0==self.pointer
-//            }){
-//                controllersCache[self.pointer]!
-//            } else {
-//                let vc = PlayerViewController(state: self, item: nil, container: container)
-//                controllersCache[self.pointer] = vc
-//                return vc
-//            }
-//            
-//            return controller
-//        }
     }
 }
     
@@ -980,4 +932,32 @@ extension PlayerViewController: UIPageViewControllerDataSource {
 
 class PlayerVCCache{
     var dict: [Int: PlayerViewController] = [:]
+    private let cacheTolerance = 3
+    
+    subscript (index: Int)-> PlayerViewController?{
+        clearCache(targetRetrieveIndex: index)
+        
+        if dict.keys.contains(where:{
+            $0==index
+        }){
+            return dict[index]
+        } else{
+            return nil
+        }
+    }
+    subscript (entry: (Int, PlayerViewController))-> Void{
+        dict[entry.0] = entry.1
+        return Void()
+    }
+    
+    private func clearCache(targetRetrieveIndex index: Int){
+        dict = dict.filter{ element in
+            let range = index-cacheTolerance ... index+cacheTolerance
+            return range.contains(element.key) ? true : false
+        }
+    }
+    
+    func clearCurrent(index: Int){
+        dict[index] = nil
+    }
 }
