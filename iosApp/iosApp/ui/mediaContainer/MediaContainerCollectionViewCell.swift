@@ -50,6 +50,3 @@ class MediaContainerCollectionViewCell: UICollectionViewCell {
         })
     }
 }
-
-extension MediaContainerCollectionViewCell{
-}

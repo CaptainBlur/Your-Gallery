@@ -11,9 +11,7 @@ import shared
 import Kingfisher
 
 class PlayerViewController: UIPageViewController {
-    //State is usually one-time assigned property,
-    //but it can be reassibgned in case of moving through video player subsequence
-    private var state: SequenceState?
+    private var state: SequenceState
 
     private var player: AVPlayer?
     private var playerLayer: AVPlayerLayer?
@@ -90,7 +88,7 @@ class PlayerViewController: UIPageViewController {
         } else if container != nil {
             self.playbackType = 2
             self.colorScheme = container!.containerType.colorScheme
-            Native().sl.i(msg: "VC created to display a container: \(container!.name)")
+            Native().sl.i(msg: "VC created to display a container: \(state.itemsStore[state.pointer]?.name ?? "nil")")
         } else {
             fatalError("Provide either an item or a container")
         }
@@ -130,18 +128,17 @@ class PlayerViewController: UIPageViewController {
         togglePlayPause(true)
         
         if playbackType == 0{
-            state?.lastPlayedItem?.triggerAutoscroll()
+            state.lastPlayedItem?.triggerAutoscroll()
         }
         
-        if playbackType==2, let state = self.state{
+        if playbackType==2{
             state.lastPlayedItem?.index = state.pointer
         }
     }
     
     override func viewWillAppear(_ animated: Bool){
         super.viewWillAppear(animated)
-        guard let sequenceState = state else {return}
-        if sequenceState.isCurrentVideo {
+        if state.isCurrentVideo {
             instantShowControls()
         }
     }
@@ -152,9 +149,9 @@ class PlayerViewController: UIPageViewController {
     }
         
     private func setPagerVC() {
-        guard let sequenceState = state, playbackType == 0 else { return }
+        guard playbackType == 0 else { return }
 
-        let produced: PlayerViewController = item != nil ? sequenceState[item!] : sequenceState[container!]
+        let produced: PlayerViewController = item != nil ? state[item!] : state[container!]
 
         if let currentVC = viewControllers?.first, currentVC == produced {
             Native().sl.w(msg: "setViewControllers skipped: Already on this page")
@@ -225,8 +222,8 @@ extension PlayerViewController {
     }
     
     private func setupControlViews(){
-        guard let cS = colorScheme, let sequenceState = state else {return}
-        controlsHidden = sequenceState.isCurrentPhoto ? true : false
+        guard let cS = colorScheme else {return}
+        controlsHidden = state.isCurrentPhoto ? true : false
         
         //Controls container
         //the hell happens with gesture recognizers when it's hidden,
@@ -253,7 +250,7 @@ extension PlayerViewController {
         closeButton.tintColor = cS.surface.uiColorLight()
         closeButton.addTarget(self, action: #selector(dismissView), for: .touchUpInside)
         closeButton.translatesAutoresizingMaskIntoConstraints = false
-        closeButton.alpha = sequenceState.isCurrentPhoto ? 0 : 1
+        closeButton.alpha = state.isCurrentPhoto ? 0 : 1
         controlsContainerView.addSubview(closeButton)
         
         NSLayoutConstraint.activate([
@@ -273,7 +270,7 @@ extension PlayerViewController {
             loadingIndicator.heightAnchor.constraint(equalToConstant: 45)
         ])
         
-        if sequenceState.isCurrentPhoto {return}
+        if state.isCurrentPhoto {return}
         
         //Gradient view
         gradientView.translatesAutoresizingMaskIntoConstraints = false
@@ -380,7 +377,7 @@ extension PlayerViewController {
     //MARK: setup content display
     
     private func setupSingleItemPlayback(){
-        guard let sequenceState = state, let item = sequenceState.itemsStore[sequenceState.pointer] else {return}
+        guard let item = state.itemsStore[state.pointer] else {return}
         
         switch item.contentType{
         case .photo:
@@ -520,7 +517,6 @@ extension PlayerViewController{
                 setupLoadingIndicatorActivation()
                 resetTimeCounter()
                 
-                guard let state = self.state else {return}
                 state.selfCache.clearCurrent(index: state.pointer)
             case .unknown:
                 Native().sl.fr(msg: "playerItem status unknown")
@@ -805,16 +801,15 @@ extension PlayerViewController{
 
 extension PlayerViewController {
     /*
+     1. Represents a replicable state for pages in PageViewController
+     2. Every new controller should be issued from a newly created object of this type
+     
      - Call either the 'item' or the 'container' VC's constructor from the outside
-     - During initialization, create a new state and hold the reference
-     both item and container can generate a universal state
+     - During initialization, create a new state and hold the reference;
+     state may be suplemented by both item and container
      - On viewDidLoad(), produce a new controller, using subscript, and pass it to PagerVC
      - Newly created controller holds a pre-defined State reference,
      and ready for displaying items
-     
-     1. Depending on which subsequence (video or photo) is entered,
-     retrieve new controller for photo, or video items array, if needed
-     2. Every item change (photo or video) should be suplemented by the state transition
      */
     private struct SequenceState{
         let count: Int
@@ -902,9 +897,8 @@ extension PlayerViewController: UIPageViewControllerDataSource {
     
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
         guard let playerVC = viewController as? PlayerViewController,
-              let state = playerVC.state,
               let container = playerVC.container,
-              let newState = state[container, false]
+              let newState = playerVC.state[container, false]
         else {return nil}
         return newState[playerVC]
 //        guard let playerVC = viewController as? PlayerViewController,
@@ -916,9 +910,8 @@ extension PlayerViewController: UIPageViewControllerDataSource {
 
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
         guard let playerVC = viewController as? PlayerViewController,
-              let state = playerVC.state,
               let container = playerVC.container,
-              let newState = state[container, true]
+              let newState = playerVC.state[container, true]
         else {return nil}
         return newState[playerVC]
         //        guard let playerVC = viewController as? PlayerViewController,
