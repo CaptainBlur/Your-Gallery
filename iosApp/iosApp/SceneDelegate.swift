@@ -35,6 +35,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             "[default_launch]"
         }
         let window = UIWindow(windowScene: windowScene)
+        window.overrideUserInterfaceStyle = .light
         window.rootViewController = UINavigationController(rootViewController: controller)
         window.makeKeyAndVisible()
         self.window = window

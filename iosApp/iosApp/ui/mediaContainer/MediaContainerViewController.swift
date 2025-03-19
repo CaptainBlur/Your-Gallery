@@ -36,12 +36,14 @@ class MediaContainerViewController: UIViewController, UICollectionViewDelegate, 
     
     override func viewWillAppear(_ animated: Bool){
         super.viewWillAppear(animated)
-        view.backgroundColor = colorScheme.surface.uiColor()
-        setupCollectionView()
+        setupLayout()
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        view.backgroundColor = colorScheme.surface.uiColor()
+        setupCollectionView()
+        setupNavBar()
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -52,53 +54,65 @@ class MediaContainerViewController: UIViewController, UICollectionViewDelegate, 
 
 extension MediaContainerViewController {
     
-    override func viewWillLayoutSubviews(){
-        let cellsPerRow = 2
+    private func setupCollectionView(){
         
-        //The proper bounds of CollectionView are not set up at first
-        collectionView.frame = view.bounds
-        collectionView.collectionViewLayout.invalidateLayout()
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .vertical
+        collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
         
-        if let layout = collectionView.collectionViewLayout as? UICollectionViewFlowLayout {
-            let marginsAndInsets = layout.sectionInset.left + layout.sectionInset.right + collectionView.safeAreaInsets.left + collectionView.safeAreaInsets.right + layout.minimumInteritemSpacing * CGFloat(cellsPerRow - 1)
-            let stackViewVerticalInsets = CGFloat(20)
-            let nameLabelMaxHeight = CGFloat(41)
-            let sizeLabelMaxHeight = CGFloat(18)
-            
-//            Native().sl.i(obj: view.bounds.size)
-//            Native().sl.f(obj: collectionView.bounds.size)
-            let itemWidth = ((collectionView.bounds.size.width - marginsAndInsets) / CGFloat(cellsPerRow)).rounded(.down)
-            layout.itemSize =  CGSize(width: itemWidth, height: itemWidth + stackViewVerticalInsets + nameLabelMaxHeight + sizeLabelMaxHeight)
-//            layout.estimatedItemSize = UICollectionViewFlowLayout.automaticSize
-            
-//            Native().sl.fr(obj: layout.itemSize)
-        }
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(collectionView)
+        
+        collectionView.backgroundColor = mediaContainer.containerType.colorScheme.surface.uiColor()
+        collectionView.delegate = self
+        collectionView.dataSource = self
+        
+        collectionView.contentInsetAdjustmentBehavior = .never
+        let nib = UINib(nibName: "MCCollectionViewCell", bundle: nil)
+        collectionView.register(nib, forCellWithReuseIdentifier: "CustomCell")
     }
     
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return mediaContainer.mediaItems.count
+    private func setupLayout(){
+        guard !isCollectionViewSetup,
+        let layout = collectionView.collectionViewLayout as? UICollectionViewFlowLayout else {return}
+        
+        let spacing: CGFloat = 10
+        let navBarHeight = navigationController?.navigationBar.frame.height ?? 0
+        
+        layout.minimumInteritemSpacing = spacing
+        layout.minimumLineSpacing = spacing
+        layout.sectionInset = UIEdgeInsets(top: navBarHeight + spacing, left: spacing, bottom: spacing, right: spacing)
+        
+        isCollectionViewSetup = true
     }
     
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CustomCell", for: indexPath) as! MediaContainerCollectionViewCell
-        setupViewCell(cell, indexPath.item)
-//        Native().sl.w(obj: indexPath.item)
-        return cell
-    }
+    private func setupNavBar(){
+        navigationItem.title = mediaContainer.name
+        
+        let standartAppearance = UINavigationBarAppearance()
+        standartAppearance.configureWithTransparentBackground()
+        standartAppearance.titleTextAttributes = [
+            NSAttributedString.Key.foregroundColor : colorScheme.onSurface.uiColor()
+        ]
+        let edgeAppearance = standartAppearance.copy()
+        
+        edgeAppearance.backgroundColor = colorScheme.onPrimaryContainer.uiColor()
+        standartAppearance.backgroundColor = colorScheme.secondaryContainer.uiColor().withAlphaComponent(0.65)
+        standartAppearance.backgroundEffect = UIBlurEffect(style: .light)
 
-    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
-        super.viewWillTransition(to: size, with: coordinator)
-        collectionView?.collectionViewLayout.invalidateLayout()
+        navigationController?.navigationBar.standardAppearance = standartAppearance
+        navigationController?.navigationBar.scrollEdgeAppearance = edgeAppearance
+
+        let config = UIImage.SymbolConfiguration(pointSize: 19).applying(UIImage.SymbolConfiguration(hierarchicalColor: colorScheme.primary.uiColor()))
+        let ellipsisImage = UIImage(systemName: "ellipsis.circle", withConfiguration: config)!
+
+        navigationItem.rightBarButtonItem = UIBarButtonItem(image: ellipsisImage, style: .done, target: self, action: #selector(onOptionsTap))
     }
     
-    override func viewDidLayoutSubviews(){
-        super.viewDidLayoutSubviews()
-        collectionView?.collectionViewLayout.invalidateLayout()
+    @objc private func onOptionsTap(){
+        
     }
-
-}
-
-extension MediaContainerViewController {
+    
     private func setupViewCell(_ cell: MediaContainerCollectionViewCell, _ index: Int){
         cell.layer.cornerRadius = 14
         cell.layer.borderWidth = 2
@@ -148,32 +162,54 @@ extension MediaContainerViewController {
             self!.present(playerController, animated: true)
         }
     }
+}
+
+extension MediaContainerViewController {
     
-    private func setupCollectionView(){
+    override func viewWillLayoutSubviews(){
+        let cellsPerRow = 2
         
-        let layout = UICollectionViewFlowLayout()
-        layout.scrollDirection = .vertical
-        collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
-        
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(collectionView)
-        
-        collectionView.backgroundColor = mediaContainer.containerType.colorScheme.surface.uiColor()
-        collectionView.delegate = self
-        collectionView.dataSource = self
+        //The proper bounds of CollectionView are not set up at first
+        collectionView.frame = view.bounds
+        collectionView.collectionViewLayout.invalidateLayout()
         
         if let layout = collectionView.collectionViewLayout as? UICollectionViewFlowLayout {
-            let spacing: CGFloat = 10
+            let marginsAndInsets = layout.sectionInset.left + layout.sectionInset.right + collectionView.safeAreaInsets.left + collectionView.safeAreaInsets.right + layout.minimumInteritemSpacing * CGFloat(cellsPerRow - 1)
+            let stackViewVerticalInsets = CGFloat(20)
+            let nameLabelMaxHeight = CGFloat(41)
+            let sizeLabelMaxHeight = CGFloat(18)
             
-            layout.minimumInteritemSpacing = spacing
-            layout.minimumLineSpacing = spacing
-            layout.sectionInset = UIEdgeInsets(top: spacing, left: spacing, bottom: spacing, right: spacing)
+//            Native().sl.i(obj: view.bounds.size)
+//            Native().sl.f(obj: collectionView.bounds.size)
+            let itemWidth = ((collectionView.bounds.size.width - marginsAndInsets) / CGFloat(cellsPerRow)).rounded(.down)
+            layout.itemSize =  CGSize(width: itemWidth, height: itemWidth + stackViewVerticalInsets + nameLabelMaxHeight + sizeLabelMaxHeight)
+//            layout.estimatedItemSize = UICollectionViewFlowLayout.automaticSize
+            
+//            Native().sl.fr(obj: layout.itemSize)
         }
-
-        collectionView.contentInsetAdjustmentBehavior = .never
-        let nib = UINib(nibName: "MCCollectionViewCell", bundle: nil)
-        collectionView.register(nib, forCellWithReuseIdentifier: "CustomCell")
     }
+    
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return mediaContainer.mediaItems.count
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CustomCell", for: indexPath) as! MediaContainerCollectionViewCell
+        setupViewCell(cell, indexPath.item)
+//        Native().sl.w(obj: indexPath.item)
+        return cell
+    }
+
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        collectionView?.collectionViewLayout.invalidateLayout()
+    }
+    
+    override func viewDidLayoutSubviews(){
+        super.viewDidLayoutSubviews()
+        collectionView?.collectionViewLayout.invalidateLayout()
+    }
+
 }
 
 extension MediaContainerViewController: UIScrollViewDelegate{

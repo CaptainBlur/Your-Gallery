@@ -28,7 +28,8 @@ class SavedAlbumsViewController: UIViewController {
         view.backgroundColor = colorScheme.surfaceContainerLowest.uiColor()
         NotificationCenter.default.addObserver(self, selector: #selector(handleSharedURL(_:)), name: .sharedURLReceived, object: nil)
          
-        checkAvailableLink()
+//        checkAvailableLink()
+        albumButtonAction(UIButton())
         
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(longPress))
         self.itemButton.addGestureRecognizer(longPress)
@@ -88,7 +89,11 @@ extension SavedAlbumsViewController{
                 }
                 else if let container = result as? MediaContainer{
                     Native().sl.i(msg: "entering media container")
-                    self?.present(MediaContainerViewController(container), animated: true)
+//                    self?.present(MediaContainerViewController(container), animated: true)
+//                    self?.navigationController?.present(MediaContainerViewController(container), animated: true)
+                    
+                    let navController = UINavigationController(rootViewController: MediaContainerViewController(container))
+                    self?.present(navController, animated: true)
                 }
             }
         }

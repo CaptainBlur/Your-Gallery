@@ -170,21 +170,6 @@ class PlayerViewController: UIPageViewController {
         default:
             return
         }
-        
-//        switch playbackType{
-//        case 0:
-//            setupMixedPlayback()
-//        case 1:
-//            setupPlayer()
-//            setupControlViews()
-//            setupControlsHide()
-////            setupQueuePlayer{
-////                self.setupControlViews()
-////                self.setupControlsHide()
-////            }
-//        default:
-//            return
-//        }
     }
 }
 
@@ -228,7 +213,7 @@ extension PlayerViewController {
         //Controls container
         //the hell happens with gesture recognizers when it's hidden,
         //only god knows
-        //try not to add this view and soon you find out, the scroll is still broken
+        //try not to add this view and promptly you find out, the scroll is broken.
         //feels like apple's just breaking my balls
         controlsContainerView.alpha = 1
         controlsContainerView.translatesAutoresizingMaskIntoConstraints = false
@@ -278,8 +263,8 @@ extension PlayerViewController {
         view.addSubview(gradientView)
         let gradientLayer = CAGradientLayer()
         gradientLayer.colors = [
-            UIColor.black.withAlphaComponent(0.45).cgColor, // Dark at the bottom
-            UIColor.clear.cgColor // Transparent at the top
+            UIColor.black.withAlphaComponent(0.65).cgColor,
+            UIColor.clear.cgColor
         ]
         gradientLayer.locations = [0.0, 1.0]
         gradientLayer.startPoint = CGPoint(x: 0.5, y: 1)
@@ -292,7 +277,7 @@ extension PlayerViewController {
             gradientView.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor),
             gradientView.trailingAnchor.constraint(equalTo: controlsContainerView.trailingAnchor),
             gradientView.bottomAnchor.constraint(equalTo: controlsContainerView.bottomAnchor),
-            gradientView.heightAnchor.constraint(equalToConstant: 135)
+            gradientView.heightAnchor.constraint(equalToConstant: 160)
         ])
         
         //Time counter
@@ -313,7 +298,7 @@ extension PlayerViewController {
         NSLayoutConstraint.activate([
             progressBar.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor, constant: 20),
             progressBar.trailingAnchor.constraint(equalTo: controlsContainerView.trailingAnchor, constant: -20),
-            progressBar.bottomAnchor.constraint(equalTo: controlsContainerView.bottomAnchor, constant: -65),
+            progressBar.bottomAnchor.constraint(equalTo: controlsContainerView.bottomAnchor, constant: -80),
             progressBar.heightAnchor.constraint(equalToConstant: 6),
             
             timeCounterLabel.centerYAnchor.constraint(equalTo: progressBar.centerYAnchor),
@@ -699,8 +684,11 @@ extension PlayerViewController{
     
     private func instantShowControls(){
         closeButton.alpha = 1
-        playButton.alpha = 1
-        loadingIndicator.alpha = 1
+        if loadingIndicator.isAnimating{
+            loadingIndicator.alpha = controlsHidden ? 1 : 0
+        }else{
+            playButton.alpha = controlsHidden ? 1 : 0
+        }
         gradientView.alpha = 1
         progressBar.alpha = 1
         if timeCounterAnimated{
