@@ -15,9 +15,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
-        Native().logging = true
-        Native().sl.en()
-        Native().themeMode = false
+        Native.shared.logging = true
+        Native.shared.sl.en()
+        Native.shared.themeMode = false
         return true
     }
 

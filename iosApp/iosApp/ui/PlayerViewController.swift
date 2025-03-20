@@ -84,11 +84,11 @@ class PlayerViewController: UIPageViewController {
         if item != nil{
             self.playbackType = 1
             self.colorScheme = item!.containerType.colorScheme
-            Native().sl.i(msg: "VC created to display an item: \(item!.name)")
+            Native.shared.sl.i(msg: "VC created to display an item: \(item!.name)")
         } else if container != nil {
             self.playbackType = 2
             self.colorScheme = container!.containerType.colorScheme
-            Native().sl.i(msg: "VC created to display a container: \(state.itemsStore[state.pointer]?.name ?? "nil")")
+            Native.shared.sl.i(msg: "VC created to display a container: \(state.itemsStore[state.pointer]?.name ?? "nil")")
         } else {
             fatalError("Provide either an item or a container")
         }
@@ -144,7 +144,7 @@ class PlayerViewController: UIPageViewController {
     }
     override func viewDidAppear(_ animated: Bool){
         super.viewDidAppear(animated)
-//        Native().sl.i(obj: state?.pointer)
+//        Native.shared.sl.i(obj: state?.pointer)
         togglePlayPause(false)
     }
         
@@ -154,7 +154,7 @@ class PlayerViewController: UIPageViewController {
         let produced: PlayerViewController = item != nil ? state[item!] : state[container!]
 
         if let currentVC = viewControllers?.first, currentVC == produced {
-            Native().sl.w(msg: "setViewControllers skipped: Already on this page")
+            Native.shared.sl.w(msg: "setViewControllers skipped: Already on this page")
             return
         }
 
@@ -189,7 +189,7 @@ extension PlayerViewController {
             ],
             completionHandler: { result in
                 if case .failure(let error) = result {
-                    Native().sl.w(msg: "Image Loading Failed: \(error.localizedDescription)")
+                    Native.shared.sl.w(msg: "Image Loading Failed: \(error.localizedDescription)")
                 }
             }
         )
@@ -370,7 +370,7 @@ extension PlayerViewController {
         case .video:
             setupVideo(item)
         default:
-            Native().sl.s(msg: "unknown type for item: \(item.name)")
+            Native.shared.sl.s(msg: "unknown type for item: \(item.name)")
         }
         
         setupControlViews()
@@ -389,7 +389,7 @@ extension PlayerViewController {
             ],
             completionHandler: { result in
                 if case .failure(let error) = result {
-                    Native().sl.w(msg: "Image Loading Failed: \(error.localizedDescription)")
+                    Native.shared.sl.w(msg: "Image Loading Failed: \(error.localizedDescription)")
                 }
             }
         )
@@ -408,11 +408,11 @@ extension PlayerViewController {
     
     private func setupVideo(_ item: MediaItem){
         guard let url = URL(string: item.resolvedContentLink) else {
-            Native().sl.s(msg: "Invalid URL: \(item.resolvedContentLink)")
+            Native.shared.sl.s(msg: "Invalid URL: \(item.resolvedContentLink)")
             return
         }
         
-//            Native().sl.i(msg: "setting up player for item: \(item.name)")
+//            Native.shared.sl.i(msg: "setting up player for item: \(item.name)")
 
         // Set AVAsset HTTP headers
         let assetOptions: [String: Any] = [
@@ -466,7 +466,7 @@ extension PlayerViewController{
             if durationSeconds > 0 {
                 let progress = Float(currentSeconds / durationSeconds)
                 self!.progressBar.setProgress(progress, animated: true)
-//                Native().sl.i(msg: "🟢 Progress updated: \(progress)")
+//                Native.shared.sl.i(msg: "🟢 Progress updated: \(progress)")
             }
         }
     }
@@ -477,25 +477,25 @@ extension PlayerViewController{
                 switch player.timeControlStatus {
                 case .playing:
                     deactivateLoadingIndicator()
-//                    Native().sl.fr(msg: "▶️ Player")
+//                    Native.shared.sl.fr(msg: "▶️ Player")
                 case .paused:
                     deactivateLoadingIndicator()
-//                    Native().sl.fr(msg: "⏸️ Player")
+//                    Native.shared.sl.fr(msg: "⏸️ Player")
                 case .waitingToPlayAtSpecifiedRate:
                     setupLoadingIndicatorActivation()
-//                    Native().sl.fr(msg: "⏳ Player")
+//                    Native.shared.sl.fr(msg: "⏳ Player")
                 @unknown default:
-                    Native().sl.fr(msg: "❓ Player")
+                    Native.shared.sl.fr(msg: "❓ Player")
                 }
             }
         } else
         if keyPath == "status", let playerItem = object as? AVPlayerItem {
             switch playerItem.status {
             case .readyToPlay:
-                Native().sl.fr(msg: "media successfully resolved")
+                Native.shared.sl.fr(msg: "media successfully resolved")
                 animateTimeCounter()
             case .failed:
-                Native().sl.w(msg: "failed to load media: \(playerItem.error?.localizedDescription ?? "Unknown error")")
+                Native.shared.sl.w(msg: "failed to load media: \(playerItem.error?.localizedDescription ?? "Unknown error")")
                 player?.pause()
                 playButton.isHidden = true
                 unablePlayImage.isHidden = false
@@ -504,9 +504,9 @@ extension PlayerViewController{
                 
                 state.selfCache.clearCurrent(index: state.pointer)
             case .unknown:
-                Native().sl.fr(msg: "playerItem status unknown")
+                Native.shared.sl.fr(msg: "playerItem status unknown")
             @unknown default:
-                Native().sl.w(msg: "Unhandled AVPlayerItem status")
+                Native.shared.sl.w(msg: "Unhandled AVPlayerItem status")
             }
         }
     }
@@ -683,19 +683,23 @@ extension PlayerViewController{
     }
     
     private func instantShowControls(){
-        closeButton.alpha = 1
-        if loadingIndicator.isAnimating{
-            loadingIndicator.alpha = controlsHidden ? 1 : 0
-        }else{
-            playButton.alpha = controlsHidden ? 1 : 0
-        }
-        gradientView.alpha = 1
-        progressBar.alpha = 1
-        if timeCounterAnimated{
-            timeCounterLabel.alpha = 1
+        if controlsHidden{
+            closeButton.alpha = 1
+            if loadingIndicator.isAnimating{
+                loadingIndicator.alpha = controlsHidden ? 1 : 0
+            }else{
+                playButton.alpha = controlsHidden ? 1 : 0
+            }
+            gradientView.alpha = 1
+            progressBar.alpha = 1
+            if timeCounterAnimated{
+                timeCounterLabel.alpha = 1
+            }
+            
+            controlsHidden = false
         }
         
-        controlsHidden = false
+        setupControlsHide()
     }
 
     private func setupControlsHide(){

@@ -6,7 +6,9 @@ import io.ktor.http.Url
 enum class DataSourceType(
     private val subdomain: String)
 {
-    BUNKR("bunkr");
+    BUNKR("bunkr"),
+    PIXELDRAIN("pixeldrain")
+    ;
 
     private var resolved = false
 
@@ -61,6 +63,12 @@ enum class DataSourceType(
                     return
                 }
 
+                this.url = url
+            }
+            1->{
+                val path = url.substringBeforeLast("/").last()
+                isAlbum = path=='l'
+                isItem = path=='u'
                 this.url = url
             }
         }

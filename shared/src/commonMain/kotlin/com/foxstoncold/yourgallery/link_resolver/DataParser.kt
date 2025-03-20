@@ -6,6 +6,7 @@ import com.foxstoncold.yourgallery.link_resolver.data_parser.DataSourceType
 import com.foxstoncold.yourgallery.link_resolver.data_parser.MediaContainer
 import com.foxstoncold.yourgallery.link_resolver.data_parser.MediaContainerType
 import com.foxstoncold.yourgallery.link_resolver.data_parser.MediaItem
+import com.foxstoncold.yourgallery.link_resolver.data_parser.PixeldrainMediaItem
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
@@ -32,14 +33,19 @@ class DataParser{
     private val parsedDataCache: HashMap<String, Any?> = hashMapOf()
 
     init {
-        dpScope.launch {
-            sl.en()
+        sl.en()
+    }
 
-            val album = "https://bunkr.cr/a/DoznjiN9"
-            val item = "https://bunkr.cr/f/7710667-o6og5XNI.mp4"
+    fun testRun(){
+        dpScope.launch {
+//            val album = "https://bunkr.cr/a/DoznjiN9"
+//            val item = "https://bunkr.cr/f/7710667-o6og5XNI.mp4"
+//            val item = "https://pixeldrain.com/u/tgN4A9Hs"
+            val album = "https://pixeldrain.com/l/j5G25RUJ"
             delay (5000L)
 
-//            val result = parseData(album)?: return@launch
+            val result = parseData(album)?: return@launch
+            sl.w(result)
 //            i("Done: " + (result as MediaContainer).mediaItems.size)
         }
     }
@@ -73,6 +79,7 @@ class DataParser{
             sl.f("parsing item")
             val parsed = when(sourceType.ordinal){
                 0-> BunkrMediaItem.parse(client, sourceType.url)
+                1-> PixeldrainMediaItem.parse(client, sourceType.url)
                 else-> null
             }
             parsed?.let { parsedDataCache[sourceType.url] = it }

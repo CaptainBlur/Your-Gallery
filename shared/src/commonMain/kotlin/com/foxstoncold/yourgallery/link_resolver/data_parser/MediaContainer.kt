@@ -36,8 +36,15 @@ data class MediaContainer(
 
     companion object {
         suspend fun parse(client: HttpClient, sourceType: DataSourceType): MediaContainer?{
+            return when(sourceType){
+                DataSourceType.BUNKR-> parseBunkr(client, sourceType)
+                DataSourceType.PIXELDRAIN-> parsePixeldrain(client, sourceType)
+            }
+        }
+
+        private suspend fun parseBunkr(client: HttpClient, sourceType: DataSourceType): MediaContainer?{
             val url = sourceType.url
-            val htmlString = handleHttpRequest{
+            val htmlString = handleHttpRequest<String>{
                 client.get(url)
             } ?: return null
             val document: Document = Ksoup.parse(htmlString)
@@ -58,6 +65,19 @@ data class MediaContainer(
             }
 
             return MediaContainer(albumName, albumSize, url, MediaContainerType.BUNKR, result)
+        }
+
+        private suspend fun parsePixeldrain(client: HttpClient, sourceType: DataSourceType): MediaContainer?{
+            val link = "https://pixeldrain.com/api/list/${sourceType.url.substringAfterLast('/')}"
+            val listInfo = handleHttpRequest<PixeldrainMediaItem.Companion.PixeldrainFileListInfo> {
+                client.get(link)
+            } ?: return null
+
+            val mediaItems = listInfo.files.mapIndexed{ index, fileInfo->
+                PixeldrainMediaItem.parse(index, fileInfo)
+            }
+
+            return MediaContainer(listInfo.title, remoteContainerLink = sourceType.url, containerType = MediaContainerType.PIXELDRAIN, mediaItems = mediaItems)
         }
 
     }

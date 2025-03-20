@@ -15,16 +15,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
         guard let sharedUrl = URLContexts.first?.url.query() else {
-            Native().sl.s(msg: "Failed to extract shared url")
+            Native.shared.sl.s(msg: "Failed to extract shared url")
             return
         }
-//        Native().sl.i(msg: "SceneDelegate received URL: \(sharedUrl)")
+//        Native.shared.sl.i(msg: "SceneDelegate received URL: \(sharedUrl)")
         removeBackupedShareUrl()
         NotificationCenter.default.post(name: .sharedURLReceived, object: sharedUrl)
     }
     
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        Native().sl.i(msg: "SceneDelegate - default call")
+        Native.shared.sl.i(msg: "SceneDelegate - default call")
         guard let windowScene = (scene as? UIWindowScene) else { return }
     
         let controller = SavedAlbumsViewController()

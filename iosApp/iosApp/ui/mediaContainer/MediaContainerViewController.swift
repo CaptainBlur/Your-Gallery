@@ -41,7 +41,7 @@ class MediaContainerViewController: UIViewController, UICollectionViewDelegate, 
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = colorScheme.surface.uiColor()
+        view.backgroundColor = colorScheme.surfaceContainerLow.uiColor()
         setupCollectionView()
         setupNavBar()
     }
@@ -63,7 +63,7 @@ extension MediaContainerViewController {
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(collectionView)
         
-        collectionView.backgroundColor = mediaContainer.containerType.colorScheme.surface.uiColor()
+        collectionView.backgroundColor = .clear
         collectionView.delegate = self
         collectionView.dataSource = self
         
@@ -92,24 +92,36 @@ extension MediaContainerViewController {
         let standartAppearance = UINavigationBarAppearance()
         standartAppearance.configureWithTransparentBackground()
         standartAppearance.titleTextAttributes = [
-            NSAttributedString.Key.foregroundColor : colorScheme.onSurface.uiColor()
+            NSAttributedString.Key.foregroundColor : colorScheme.onSurface.uiColor(),
+//            NSAttributedString.Key.font : UIFont.systemFont(ofSize: UIFont.labelFontSize, weight: .semibold)
         ]
         let edgeAppearance = standartAppearance.copy()
         
-        edgeAppearance.backgroundColor = colorScheme.onPrimaryContainer.uiColor()
-        standartAppearance.backgroundColor = colorScheme.secondaryContainer.uiColor().withAlphaComponent(0.65)
+        switch mediaContainer.containerType{
+        case .bunkr:
+            edgeAppearance.backgroundColor = colorScheme.onPrimaryContainer.uiColor()
+            standartAppearance.backgroundColor = colorScheme.secondaryContainer.uiColor().withAlphaComponent(0.65)
+        case .pixeldrain:
+            edgeAppearance.backgroundColor = colorScheme.secondaryContainer.uiColor()
+            standartAppearance.backgroundColor = colorScheme.secondaryContainer.uiColor().withAlphaComponent(0.65)
+        default:
+            Void()
+        }
+
         standartAppearance.backgroundEffect = UIBlurEffect(style: .light)
 
         navigationController?.navigationBar.standardAppearance = standartAppearance
         navigationController?.navigationBar.scrollEdgeAppearance = edgeAppearance
+        navigationController?.navigationBar.tintColor = colorScheme.primary.uiColor()
 
-        let config = UIImage.SymbolConfiguration(pointSize: 19).applying(UIImage.SymbolConfiguration(hierarchicalColor: colorScheme.primary.uiColor()))
-        let ellipsisImage = UIImage(systemName: "ellipsis.circle", withConfiguration: config)!
-
-        navigationItem.rightBarButtonItem = UIBarButtonItem(image: ellipsisImage, style: .done, target: self, action: #selector(onOptionsTap))
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Back", style: .done, target: self, action: #selector(onBackTap))
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Save", style: .done, target: self, action: #selector(onSaveTap))
     }
     
-    @objc private func onOptionsTap(){
+    @objc private func onBackTap(){
+        self.dismiss(animated: true)
+    }
+    @objc private func onSaveTap(){
         
     }
     
@@ -122,11 +134,11 @@ extension MediaContainerViewController {
         cell.sizeLabel.textColor = colorScheme.onSurfaceVariant.uiColor()
         
         guard !mediaContainer.mediaItems.isEmpty else {
-            Native().sl.w(msg: "media items list is empty")
+            Native.shared.sl.w(msg: "media items list is empty")
             return
         }
         guard let item: MediaItem = mediaContainer.mediaItems[index] as? MediaItem else {
-            Native().sl.w(msg: "media item is empty: \(index)")
+            Native.shared.sl.w(msg: "media item is empty: \(index)")
             
             cell.nameLabel.text = "N/A"
             cell.sizeLabel.text = "N/A"
@@ -134,7 +146,10 @@ extension MediaContainerViewController {
             return
         }
         
-        cell.layer.borderColor = item.contentType==MediaItemContentType.video ? colorScheme.secondaryContainer_medium.uiColor().cgColor : colorScheme.secondaryContainer.uiColor().cgColor
+        cell.layer.borderColor = item.contentType==MediaItemContentType.video ?
+        colorScheme.tertiaryContainer.uiColor().withAlphaComponent(0.5).cgColor :
+        colorScheme.secondaryContainer.uiColor().cgColor
+        
         cell.nameLabel.text = item.name
         cell.sizeLabel.text = item.size
         let modifier = AnyModifier { request in
@@ -179,13 +194,13 @@ extension MediaContainerViewController {
             let nameLabelMaxHeight = CGFloat(41)
             let sizeLabelMaxHeight = CGFloat(18)
             
-//            Native().sl.i(obj: view.bounds.size)
-//            Native().sl.f(obj: collectionView.bounds.size)
+//            Native.shared.sl.i(obj: view.bounds.size)
+//            Native.shared.sl.f(obj: collectionView.bounds.size)
             let itemWidth = ((collectionView.bounds.size.width - marginsAndInsets) / CGFloat(cellsPerRow)).rounded(.down)
             layout.itemSize =  CGSize(width: itemWidth, height: itemWidth + stackViewVerticalInsets + nameLabelMaxHeight + sizeLabelMaxHeight)
 //            layout.estimatedItemSize = UICollectionViewFlowLayout.automaticSize
             
-//            Native().sl.fr(obj: layout.itemSize)
+//            Native.shared.sl.fr(obj: layout.itemSize)
         }
     }
     
@@ -196,7 +211,7 @@ extension MediaContainerViewController {
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CustomCell", for: indexPath) as! MediaContainerCollectionViewCell
         setupViewCell(cell, indexPath.item)
-//        Native().sl.w(obj: indexPath.item)
+//        Native.shared.sl.w(obj: indexPath.item)
         return cell
     }
 
